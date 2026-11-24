@@ -1,6 +1,6 @@
 /* ==========================================================================
    Streamer Space - OBS Studio Browser Source Overlay CSS
-   Transparent, responsive for 1920x1080 (horizontal) & 1080x1920 (vertical)
+   Transparent, responsive, modular per-widget or full composition (1:1 scale)
    Supports dynamic layout positioning and custom styling from editor config
    ========================================================================== */
 
@@ -37,6 +37,7 @@ html, body {
   box-sizing: border-box;
   overflow: hidden;
   pointer-events: none; /* Let clicks pass through in OBS */
+  transform: none !important; /* 1:1 scale without artificial viewport scaling */
 }
 
 /* ==========================================================================
@@ -337,7 +338,7 @@ html, body {
   padding: 0.4em 0.75em;
   backdrop-filter: blur(6px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-  font-size: 1em;
+  font-size: var(--chat-font-size, 1em);
   line-height: 1.4;
   animation: chatBubbleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   width: fit-content;
@@ -556,40 +557,156 @@ html, body {
 }
 
 /* ==========================================================================
-   DEFAULT STATIC FALLBACK POSITIONS (if JS has not yet run)
+   MODULAR DEDICATED WIDGET MODES (/overlay/:token/:widget)
+   Clean 1:1 scale, top-left positioned with 12px padding
+   ========================================================================== */
+
+/* Mode: chat */
+body[data-widget="chat"] .stats-widget,
+body[data-widget="chat"] .gift-alerts-container,
+body[data-widget="chat"] .likes-goal-widget {
+  display: none !important;
+}
+
+body[data-widget="chat"] .chat-widget {
+  display: flex !important;
+  position: absolute !important;
+  top: 12px !important;
+  left: 12px !important;
+  width: calc(100% - 24px) !important;
+  height: calc(100% - 24px) !important;
+  max-width: calc(100% - 24px) !important;
+  margin: 0 !important;
+}
+
+/* Mode: likes */
+body[data-widget="likes"] .chat-widget,
+body[data-widget="likes"] .gift-alerts-container,
+body[data-widget="likes"] .likes-goal-widget,
+body[data-widget="likes"] .viewer-stat-pill {
+  display: none !important;
+}
+
+body[data-widget="likes"] .stats-widget {
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+}
+
+body[data-widget="likes"] .like-stat-pill {
+  display: flex !important;
+  position: absolute !important;
+  top: 12px !important;
+  left: 12px !important;
+  width: fit-content !important;
+  max-width: calc(100% - 24px) !important;
+  height: auto !important;
+  margin: 0 !important;
+}
+
+/* Mode: viewers */
+body[data-widget="viewers"] .chat-widget,
+body[data-widget="viewers"] .gift-alerts-container,
+body[data-widget="viewers"] .likes-goal-widget,
+body[data-widget="viewers"] .like-stat-pill {
+  display: none !important;
+}
+
+body[data-widget="viewers"] .stats-widget {
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+}
+
+body[data-widget="viewers"] .viewer-stat-pill {
+  display: flex !important;
+  position: absolute !important;
+  top: 12px !important;
+  left: 12px !important;
+  width: fit-content !important;
+  max-width: calc(100% - 24px) !important;
+  height: auto !important;
+  margin: 0 !important;
+}
+
+/* Mode: gift-alerts */
+body[data-widget="gift-alerts"] .chat-widget,
+body[data-widget="gift-alerts"] .stats-widget,
+body[data-widget="gift-alerts"] .likes-goal-widget {
+  display: none !important;
+}
+
+body[data-widget="gift-alerts"] .gift-alerts-container {
+  display: flex !important;
+  position: absolute !important;
+  top: 12px !important;
+  left: 12px !important;
+  width: calc(100% - 24px) !important;
+  height: calc(100% - 24px) !important;
+  max-width: calc(100% - 24px) !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  margin: 0 !important;
+}
+
+/* Mode: likes-goal */
+body[data-widget="likes-goal"] .chat-widget,
+body[data-widget="likes-goal"] .stats-widget,
+body[data-widget="likes-goal"] .gift-alerts-container {
+  display: none !important;
+}
+
+body[data-widget="likes-goal"] .likes-goal-widget {
+  display: flex !important;
+  position: absolute !important;
+  top: 12px !important;
+  left: 12px !important;
+  width: calc(100% - 24px) !important;
+  max-width: calc(100% - 24px) !important;
+  height: auto !important;
+  margin: 0 !important;
+}
+
+/* ==========================================================================
+   DEFAULT STATIC FALLBACK POSITIONS (when in 'all' mode before JS runs)
    ========================================================================== */
 
 /* 1. HORIZONTAL / LANDSCAPE (Default: 1920x1080) */
 @media (min-aspect-ratio: 1/1) {
-  .chat-widget {
+  body:not([data-widget]) .chat-widget,
+  body[data-widget="all"] .chat-widget {
     left: 40px;
     top: 500px;
     width: 480px;
     height: 540px;
   }
 
-  .like-stat-pill {
+  body:not([data-widget]) .like-stat-pill,
+  body[data-widget="all"] .like-stat-pill {
     left: 1540px;
     top: 30px;
     width: 340px;
     height: 70px;
   }
 
-  .viewer-stat-pill {
+  body:not([data-widget]) .viewer-stat-pill,
+  body[data-widget="all"] .viewer-stat-pill {
     left: 1680px;
     top: 110px;
     width: 200px;
     height: 50px;
   }
 
-  .gift-alerts-container {
+  body:not([data-widget]) .gift-alerts-container,
+  body[data-widget="all"] .gift-alerts-container {
     left: 480px;
     top: 30px;
     width: 960px;
     height: 180px;
   }
 
-  .likes-goal-widget {
+  body:not([data-widget]) .likes-goal-widget,
+  body[data-widget="all"] .likes-goal-widget {
     left: 1400px;
     top: 920px;
     width: 480px;
@@ -599,35 +716,40 @@ html, body {
 
 /* 2. VERTICAL / PORTRAIT (TikTok format: 1080x1920) */
 @media (max-aspect-ratio: 1/1) {
-  .chat-widget {
+  body:not([data-widget]) .chat-widget,
+  body[data-widget="all"] .chat-widget {
     left: 40px;
     top: 1100px;
     width: 720px;
     height: 760px;
   }
 
-  .like-stat-pill {
+  body:not([data-widget]) .like-stat-pill,
+  body[data-widget="all"] .like-stat-pill {
     left: 700px;
     top: 300px;
     width: 340px;
     height: 70px;
   }
 
-  .viewer-stat-pill {
+  body:not([data-widget]) .viewer-stat-pill,
+  body[data-widget="all"] .viewer-stat-pill {
     left: 840px;
     top: 380px;
     width: 200px;
     height: 50px;
   }
 
-  .gift-alerts-container {
+  body:not([data-widget]) .gift-alerts-container,
+  body[data-widget="all"] .gift-alerts-container {
     left: 60px;
     top: 80px;
     width: 960px;
     height: 200px;
   }
 
-  .likes-goal-widget {
+  body:not([data-widget]) .likes-goal-widget,
+  body[data-widget="all"] .likes-goal-widget {
     left: 60px;
     top: 940px;
     width: 640px;

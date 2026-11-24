@@ -1,7 +1,8 @@
 /**
  * Streamer Space - OBS Studio Browser Source Overlay Script
  * Transparent, reactive via SSE, untrusted inputs sanitized via textContent
- * Dynamic configuration, multi-orientation layouts, likes goal, and custom gift alert rules
+ * Supports dedicated single-widget URLs (/overlay/:token/:widget) and composite layout (/overlay/:token)
+ * 1:1 natural scaling without automatic viewport transform, likes goal, and custom gift alert rules
  */
 
 (function () {
@@ -47,50 +48,50 @@
               },
             ],
           },
-            'likes': {
-              id: 'likes',
-              visible: true,
-              position: { x: 1460, y: 30, width: 420, height: 76, zIndex: 30 },
-              style: {
-                fontSize: 22,
-                textColor: '#ffffff',
-                backgroundColor: 'rgba(12, 16, 26, 0.82)',
-                opacity: 1,
-                borderRadius: 999,
-              },
+          'likes': {
+            id: 'likes',
+            visible: true,
+            position: { x: 1540, y: 30, width: 340, height: 70, zIndex: 30 },
+            style: {
+              fontSize: 18,
+              textColor: '#ffffff',
+              backgroundColor: 'rgba(12, 16, 26, 0.82)',
+              opacity: 1,
+              borderRadius: 999,
             },
-            'viewers': {
-              id: 'viewers',
-              visible: true,
-              position: { x: 1700, y: 120, width: 180, height: 58, zIndex: 20 },
-              style: {
-                fontSize: 20,
-                textColor: '#38bdf8',
-                backgroundColor: 'rgba(12, 16, 26, 0.82)',
-                opacity: 1,
-                borderRadius: 999,
-              },
+          },
+          'viewers': {
+            id: 'viewers',
+            visible: true,
+            position: { x: 1680, y: 110, width: 200, height: 50, zIndex: 20 },
+            style: {
+              fontSize: 16,
+              textColor: '#38bdf8',
+              backgroundColor: 'rgba(12, 16, 26, 0.82)',
+              opacity: 1,
+              borderRadius: 999,
             },
-            'chat': {
-              id: 'chat',
-              visible: true,
-              position: { x: 40, y: 420, width: 560, height: 620, zIndex: 40 },
-              style: {
-                fontSize: 22,
-                textColor: '#f8fafc',
-                backgroundColor: 'rgba(12, 16, 26, 0.82)',
-                opacity: 1,
-                borderRadius: 12,
-              },
-              messageLimit: 25,
-              showAvatar: true,
+          },
+          'chat': {
+            id: 'chat',
+            visible: true,
+            position: { x: 40, y: 500, width: 480, height: 540, zIndex: 40 },
+            style: {
+              fontSize: 15,
+              textColor: '#f8fafc',
+              backgroundColor: 'rgba(12, 16, 26, 0.82)',
+              opacity: 1,
+              borderRadius: 12,
             },
-            'likes-goal': {
-              id: 'likes-goal',
-              visible: false,
-              position: { x: 1380, y: 900, width: 500, height: 140, zIndex: 25 },
-              style: {
-                fontSize: 20,
+            messageLimit: 25,
+            showAvatar: true,
+          },
+          'likes-goal': {
+            id: 'likes-goal',
+            visible: false,
+            position: { x: 1400, y: 920, width: 480, height: 120, zIndex: 25 },
+            style: {
+              fontSize: 16,
               textColor: '#ffffff',
               backgroundColor: 'rgba(12, 16, 26, 0.85)',
               opacity: 1,
@@ -188,18 +189,46 @@
     },
   };
 
-  // Extract overlay token from URL: /overlay/:token
-  function getOverlayToken() {
+  /**
+   * Extract overlay token and optional active widget from URL:
+   * Pattern: /overlay/:token or /overlay/:token/:widget
+   * Widgets: 'chat' | 'likes' | 'viewers' | 'gift-alerts' | 'likes-goal' | 'all'
+   */
+  function getOverlayParams() {
     const segments = window.location.pathname.split('/').filter(Boolean);
     const overlayIdx = segments.indexOf('overlay');
-    if (overlayIdx !== -1 && segments[overlayIdx + 1]) {
-      return segments[overlayIdx + 1];
+    let token = 'default-token';
+    let widget = 'all';
+
+    if (overlayIdx !== -1) {
+      if (segments[overlayIdx + 1]) {
+        token = segments[overlayIdx + 1];
+      }
+      if (segments[overlayIdx + 2]) {
+        widget = segments[overlayIdx + 2].toLowerCase();
+      }
     }
-    const params = new URLSearchParams(window.location.search);
-    return params.get('token') || 'default-token';
+
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('token')) {
+      token = searchParams.get('token');
+    }
+    if (searchParams.get('widget')) {
+      widget = searchParams.get('widget').toLowerCase();
+    }
+
+    const validWidgets = ['chat', 'likes', 'viewers', 'gift-alerts', 'likes-goal'];
+    if (!validWidgets.includes(widget)) {
+      widget = 'all';
+    }
+
+    return { token, widget };
   }
 
-  const token = getOverlayToken();
+  const { token, widget: activeWidget } = getOverlayParams();
+
+  // Set body attribute for immediate CSS styling
+  document.body.setAttribute('data-widget', activeWidget);
 
   // State
   let currentConfig = DEFAULT_OVERLAY_CONFIG;
@@ -214,6 +243,8 @@
   let isAlertDisplaying = false;
 
   // DOM Elements
+  const overlayApp = document.getElementById('overlay-app');
+  const statsWidget = document.getElementById('stats-widget');
   const giftAlertsContainer = document.getElementById('gift-alerts-container');
   const chatWidget = document.getElementById('chat-widget');
   const chatMessages = document.getElementById('chat-messages');
@@ -366,7 +397,7 @@
   }
 
   /**
-   * Render a chat message safely using textContent (XSS protection)
+   * Render a chat message safely using textContent / DOM nodes (XSS protection)
    * @param {Object} chatData 
    * @param {boolean} isInitialSnapshot 
    */
@@ -433,9 +464,8 @@
       totalLikes = likes;
     }
 
-    const orientation = getOrientation();
-    const layout = (currentConfig && currentConfig.layouts && currentConfig.layouts[orientation])
-      ? currentConfig.layouts[orientation]
+    const layout = (currentConfig && currentConfig.layouts && (currentConfig.layouts.horizontal || currentConfig.layouts[getOrientation()]))
+      ? (currentConfig.layouts.horizontal || currentConfig.layouts[getOrientation()])
       : null;
     const goalConfig = layout && layout.widgets && layout.widgets['likes-goal']
       ? layout.widgets['likes-goal']
@@ -546,9 +576,8 @@
    * Fallback to defaultDurationMs and default styles.
    */
   function evaluateGiftAlertRule(giftData) {
-    const orientation = getOrientation();
-    const layout = (currentConfig && currentConfig.layouts && currentConfig.layouts[orientation])
-      ? currentConfig.layouts[orientation]
+    const layout = (currentConfig && currentConfig.layouts && (currentConfig.layouts.horizontal || currentConfig.layouts[getOrientation()]))
+      ? (currentConfig.layouts.horizontal || currentConfig.layouts[getOrientation()])
       : null;
     const widgetConfig = layout && layout.widgets && layout.widgets['gift-alerts']
       ? layout.widgets['gift-alerts']
@@ -705,8 +734,9 @@
   }
 
   /**
-   * Apply Overlay Layout & Styles Dynamically to all widgets
-   * Absolute positioning, clamping, styles, visibility, orientation
+   * Apply Overlay Layout & Styles Dynamically to widgets
+   * Respects dedicated single-widget mode (activeWidget !== 'all') or composite layout
+   * Standard 1:1 scale (no transform: scale), top-left 12px padding for dedicated widgets
    */
   function applyOverlayConfig(config) {
     const validConf = extractConfig(config);
@@ -714,32 +744,18 @@
 
     currentConfig = validConf;
     const orientation = getOrientation();
-    const layout = validConf.layouts[orientation] || validConf.layouts.horizontal;
+    // Default to horizontal config as baseline per requirements
+    const layout = validConf.layouts.horizontal || validConf.layouts[orientation] || DEFAULT_OVERLAY_CONFIG.layouts.horizontal;
     if (!layout || !layout.widgets) return;
 
-    const canvasW = layout.canvasWidth || (orientation === 'vertical' ? 1080 : 1920);
-    const canvasH = layout.canvasHeight || (orientation === 'vertical' ? 1920 : 1080);
-    const winW = window.innerWidth || canvasW;
-    const winH = window.innerHeight || canvasH;
-
-    // Uniformly scale the logical canvas to fit the viewport so Preview matches Editor 1:1
-    const overlayApp = document.getElementById('overlay-app');
+    // Reset overlayApp to clean 1:1 scale without transform
     if (overlayApp) {
-      overlayApp.style.position = 'absolute';
-      overlayApp.style.width = `${canvasW}px`;
-      overlayApp.style.height = `${canvasH}px`;
-      const isExactCanvas = Math.abs(winW - canvasW) < 10 && Math.abs(winH - canvasH) < 10;
-      if (isExactCanvas) {
-        overlayApp.style.transform = 'none';
-        overlayApp.style.left = '0px';
-        overlayApp.style.top = '0px';
-      } else {
-        const scale = Math.min(winW / canvasW, winH / canvasH);
-        overlayApp.style.transformOrigin = 'top left';
-        overlayApp.style.transform = `scale(${scale})`;
-        overlayApp.style.left = `${Math.round((winW - canvasW * scale) / 2)}px`;
-        overlayApp.style.top = `${Math.round((winH - canvasH * scale) / 2)}px`;
-      }
+      overlayApp.style.transform = 'none';
+      overlayApp.style.position = 'relative';
+      overlayApp.style.width = '100vw';
+      overlayApp.style.height = '100vh';
+      overlayApp.style.left = '0px';
+      overlayApp.style.top = '0px';
     }
 
     // Elements mapping
@@ -751,17 +767,138 @@
       'likes-goal': likesGoalWidget,
     };
 
+    // Case 1: DEDICATED WIDGET MODE (URL: /overlay/:token/:widget)
+    if (activeWidget !== 'all') {
+      document.body.setAttribute('data-widget', activeWidget);
+
+      // Hide all other widgets
+      for (const [id, el] of Object.entries(widgetElements)) {
+        if (!el) continue;
+        if (id !== activeWidget) {
+          el.style.display = 'none';
+        }
+      }
+
+      // Hide stats container wrapper if neither likes nor viewers is active
+      if (statsWidget) {
+        if (activeWidget === 'likes' || activeWidget === 'viewers') {
+          statsWidget.style.display = 'block';
+          statsWidget.style.position = 'absolute';
+          statsWidget.style.inset = '0';
+          statsWidget.style.pointerEvents = 'none';
+        } else {
+          statsWidget.style.display = 'none';
+        }
+      }
+
+      // Show and style ONLY the active widget
+      const activeEl = widgetElements[activeWidget];
+      const activeConf = layout.widgets[activeWidget] || {};
+      if (activeEl) {
+        activeEl.style.display = 'flex';
+        activeEl.style.position = 'absolute';
+        activeEl.style.top = '12px';
+        activeEl.style.left = '12px';
+        activeEl.style.right = 'auto';
+        activeEl.style.bottom = 'auto';
+        activeEl.style.zIndex = '50';
+        activeEl.style.boxSizing = 'border-box';
+
+        if (activeWidget === 'chat' || activeWidget === 'gift-alerts' || activeWidget === 'likes-goal') {
+          activeEl.style.width = 'calc(100% - 24px)';
+          activeEl.style.maxWidth = 'calc(100% - 24px)';
+        } else {
+          activeEl.style.width = 'fit-content';
+          activeEl.style.maxWidth = 'calc(100% - 24px)';
+          activeEl.style.height = 'auto';
+        }
+
+        if (activeWidget === 'chat') {
+          activeEl.style.height = 'calc(100% - 24px)';
+        }
+
+        // Apply styles for active widget
+        const st = activeConf.style || {};
+        if (typeof st.opacity === 'number') activeEl.style.opacity = `${st.opacity}`;
+
+        if (activeWidget === 'chat') {
+          activeEl.style.backgroundColor = 'transparent';
+          activeEl.style.borderRadius = '0px';
+          if (st.backgroundColor) activeEl.style.setProperty('--chat-bubble-bg', st.backgroundColor);
+          if (typeof st.borderRadius === 'number') activeEl.style.setProperty('--chat-bubble-radius', `${st.borderRadius}px`);
+          if (st.textColor) activeEl.style.setProperty('--chat-text-color', st.textColor);
+          if (typeof st.fontSize === 'number') {
+            activeEl.style.setProperty('--chat-font-size', `${st.fontSize}px`);
+            activeEl.style.fontSize = `${st.fontSize}px`;
+          }
+
+          currentChatMessageLimit = typeof activeConf.messageLimit === 'number' ? activeConf.messageLimit : 25;
+          currentShowAvatar = typeof activeConf.showAvatar === 'boolean' ? activeConf.showAvatar : true;
+          if (currentShowAvatar) {
+            activeEl.removeAttribute('data-hide-avatar');
+          } else {
+            activeEl.setAttribute('data-hide-avatar', 'true');
+          }
+          if (chatMessages) {
+            while (chatMessages.children.length > currentChatMessageLimit) {
+              chatMessages.removeChild(chatMessages.firstChild);
+            }
+          }
+        } else if (activeWidget === 'likes') {
+          if (typeof st.borderRadius === 'number') activeEl.style.borderRadius = `${st.borderRadius}px`;
+          if (st.backgroundColor) activeEl.style.backgroundColor = st.backgroundColor;
+          if (st.textColor) {
+            activeEl.style.color = st.textColor;
+            if (overlayLikeCount) overlayLikeCount.style.color = st.textColor;
+          }
+          if (typeof st.fontSize === 'number') {
+            activeEl.style.fontSize = `${st.fontSize}px`;
+            if (overlayLikeCount) overlayLikeCount.style.fontSize = `${st.fontSize}px`;
+          }
+        } else if (activeWidget === 'viewers') {
+          if (typeof st.borderRadius === 'number') activeEl.style.borderRadius = `${st.borderRadius}px`;
+          if (st.backgroundColor) activeEl.style.backgroundColor = st.backgroundColor;
+          if (st.textColor) {
+            activeEl.style.color = st.textColor;
+            if (overlayViewerCount) overlayViewerCount.style.color = st.textColor;
+          }
+          if (typeof st.fontSize === 'number') {
+            activeEl.style.fontSize = `${st.fontSize}px`;
+            if (overlayViewerCount) overlayViewerCount.style.fontSize = `${st.fontSize}px`;
+          }
+        } else if (activeWidget === 'likes-goal') {
+          if (typeof st.borderRadius === 'number') activeEl.style.borderRadius = `${st.borderRadius}px`;
+          if (st.backgroundColor) activeEl.style.backgroundColor = st.backgroundColor;
+          if (st.textColor) activeEl.style.color = st.textColor;
+          if (typeof st.fontSize === 'number') activeEl.style.fontSize = `${st.fontSize}px`;
+          updateLikesGoal(totalLikes);
+        } else if (activeWidget === 'gift-alerts') {
+          activeEl.style.backgroundColor = 'transparent';
+          activeEl.style.borderRadius = '0px';
+        }
+      }
+      return;
+    }
+
+    // Case 2: COMPOSITE ALL-IN-ONE MODE (URL: /overlay/:token)
+    document.body.setAttribute('data-widget', 'all');
+    if (statsWidget) {
+      statsWidget.style.display = 'block';
+      statsWidget.style.position = 'absolute';
+      statsWidget.style.inset = '0';
+      statsWidget.style.pointerEvents = 'none';
+    }
+
     for (const [id, el] of Object.entries(widgetElements)) {
       if (!el) continue;
       const widgetConf = layout.widgets[id];
       if (!widgetConf) continue;
 
-      // 1. Visibility handling (display: none when visible is false)
+      // 1. Visibility handling
       if (widgetConf.visible === false) {
         el.style.display = 'none';
       } else {
         if (id === 'viewers') {
-          // Viewers widget only shows if count is known
           if (typeof currentViewerCount === 'number') {
             el.style.display = 'flex';
           } else {
@@ -772,7 +909,7 @@
         }
       }
 
-      // 2. Position & Size in logical canvas space (clamped to logical canvas bounds)
+      // 2. Position & Size in 1:1 scale
       const pos = widgetConf.position || {};
       const origW = typeof pos.width === 'number' ? pos.width : 300;
       const origH = typeof pos.height === 'number' ? pos.height : 100;
@@ -780,37 +917,33 @@
       const origY = typeof pos.y === 'number' ? pos.y : 0;
       const zIndex = typeof pos.zIndex === 'number' ? pos.zIndex : 10;
 
-      const clampedW = Math.min(origW, canvasW);
-      const clampedH = Math.min(origH, canvasH);
-      const clampedX = Math.max(0, Math.min(origX, canvasW - clampedW));
-      const clampedY = Math.max(0, Math.min(origY, canvasH - clampedH));
-
       el.style.position = 'absolute';
-      el.style.left = `${clampedX}px`;
-      el.style.top = `${clampedY}px`;
-      el.style.width = `${clampedW}px`;
-      el.style.height = `${clampedH}px`;
+      el.style.left = `${origX}px`;
+      el.style.top = `${origY}px`;
+      el.style.width = `${origW}px`;
+      el.style.height = `${origH}px`;
       el.style.zIndex = `${zIndex}`;
       el.style.boxSizing = 'border-box';
 
-      // 3. Common Styles (keep wrapper containers transparent for gift-alerts & chat)
+      // 3. Common Styles
       const st = widgetConf.style || {};
       if (typeof st.opacity === 'number') {
         el.style.opacity = `${st.opacity}`;
       }
 
       if (id === 'gift-alerts') {
-        // Container stays transparent; styles apply to individual alert banners
         el.style.backgroundColor = 'transparent';
         el.style.borderRadius = '0px';
       } else if (id === 'chat') {
-        // Chat widget wrapper stays transparent; styles apply to individual chat bubbles
         el.style.backgroundColor = 'transparent';
         el.style.borderRadius = '0px';
         if (st.backgroundColor) el.style.setProperty('--chat-bubble-bg', st.backgroundColor);
         if (typeof st.borderRadius === 'number') el.style.setProperty('--chat-bubble-radius', `${st.borderRadius}px`);
         if (st.textColor) el.style.setProperty('--chat-text-color', st.textColor);
-        if (typeof st.fontSize === 'number') el.style.fontSize = `${st.fontSize}px`;
+        if (typeof st.fontSize === 'number') {
+          el.style.setProperty('--chat-font-size', `${st.fontSize}px`);
+          el.style.fontSize = `${st.fontSize}px`;
+        }
       } else {
         if (typeof st.borderRadius === 'number') {
           el.style.borderRadius = `${st.borderRadius}px`;
@@ -862,14 +995,7 @@
       currentSessionId = snapshot.sessionId;
     }
 
-    // Apply configuration if snapshot includes it
-    if (snapshot.config) {
-      applyOverlayConfig(snapshot.config);
-    } else {
-      fetchOverlayConfig();
-    }
-
-    // 1. Set like count
+    // 1. Immediately set like count from snapshot.totalLikes
     if (typeof snapshot.totalLikes === 'number') {
       totalLikes = snapshot.totalLikes;
       if (overlayLikeCount) {
@@ -884,10 +1010,7 @@
     if (typeof snapshot.viewerCount === 'number') {
       currentViewerCount = snapshot.viewerCount;
       if (viewerStatBox) {
-        const orientation = getOrientation();
-        const layout = currentConfig && currentConfig.layouts && currentConfig.layouts[orientation];
-        const viewersConf = layout && layout.widgets && layout.widgets['viewers'];
-        if (!viewersConf || viewersConf.visible !== false) {
+        if (activeWidget === 'viewers' || activeWidget === 'all') {
           viewerStatBox.style.display = 'flex';
         }
       }
@@ -896,10 +1019,17 @@
       }
     }
 
-    // 3. Update Likes Goal with snapshot total
+    // 3. Immediately initialize Likes Goal with snapshot total
     updateLikesGoal(totalLikes);
 
-    // 4. Render recent chat messages quietly (no animation)
+    // 4. Apply configuration if snapshot includes it, otherwise fetch
+    if (snapshot.config) {
+      applyOverlayConfig(snapshot.config);
+    } else {
+      fetchOverlayConfig();
+    }
+
+    // 5. Render recent chat messages quietly (no animation)
     if (Array.isArray(snapshot.recentChat) && chatMessages) {
       chatMessages.innerHTML = '';
       snapshot.recentChat.forEach(item => {
@@ -908,7 +1038,7 @@
       });
     }
 
-    // 5. CRITICAL: Do NOT replay past gifts in snapshot as popups!
+    // 6. CRITICAL: Do NOT replay past gifts in snapshot as popups!
     // Simply mark snapshot as processed.
     isSnapshotProcessed = true;
     console.log('Snapshot inicial aplicado com sucesso ao overlay (alertas antigos ignorados).');
@@ -941,10 +1071,7 @@
       case 'viewer.count':
         if (typeof data.viewerCount === 'number') {
           currentViewerCount = data.viewerCount;
-          const orientation = getOrientation();
-          const layout = currentConfig && currentConfig.layouts && currentConfig.layouts[orientation];
-          const viewersConf = layout && layout.widgets && layout.widgets['viewers'];
-          if (viewerStatBox && (!viewersConf || viewersConf.visible !== false)) {
+          if (viewerStatBox && (activeWidget === 'viewers' || activeWidget === 'all')) {
             viewerStatBox.style.display = 'flex';
           }
           if (overlayViewerCount) {
@@ -1092,7 +1219,7 @@
     };
   }
 
-  // Handle window resize dynamically (switches orientation or adjusts scale)
+  // Handle window resize dynamically (switches orientation in 'all' mode)
   window.addEventListener('resize', function () {
     if (currentConfig) {
       applyOverlayConfig(currentConfig);

@@ -141,6 +141,7 @@ describe('HTTP Server and Routes', () => {
     const resValid = await fetch(`${baseUrl}/overlay/${testOverlayToken}`);
     expect(resValid.status).toBe(200);
     expect(resValid.headers.get('content-type')).toContain('text/html');
+    expect(resValid.headers.get('cache-control')).toContain('no-cache');
     const html = await resValid.text();
     expect(html).toContain('chat-widget');
     expect(html).toContain('gift-alerts-container');
@@ -150,6 +151,27 @@ describe('HTTP Server and Routes', () => {
     expect(resInvalid.status).toBe(403);
     const invalidJson = await resInvalid.json();
     expect(invalidJson.ok).toBe(false);
+  });
+
+  it('serves dedicated per-widget overlay routes with no-cache headers', async () => {
+    const widgets = ['chat', 'likes', 'viewers', 'gift-alerts', 'likes-goal'];
+    for (const widget of widgets) {
+      const res = await fetch(`${baseUrl}/overlay/${testOverlayToken}/${widget}`);
+      expect(res.status).toBe(200);
+      expect(res.headers.get('content-type')).toContain('text/html');
+      expect(res.headers.get('cache-control')).toContain('no-cache');
+      expect(res.headers.get('cache-control')).toContain('must-revalidate');
+      const text = await res.text();
+      expect(text).toContain('overlay-app');
+    }
+
+    // Invalid token on widget route
+    const badTokenRes = await fetch(`${baseUrl}/overlay/bad-token-xyz/chat`);
+    expect(badTokenRes.status).toBe(403);
+
+    // Invalid widget route
+    const badWidgetRes = await fetch(`${baseUrl}/overlay/${testOverlayToken}/unknown-widget-xyz`);
+    expect(badWidgetRes.status).toBe(404);
   });
 
   it('POST /api/demo/event allows triggering simulated events: like delta 3 and streak 1->2->3', async () => {

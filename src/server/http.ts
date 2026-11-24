@@ -323,12 +323,17 @@ export function createHttpServer(options: HttpServerOptions): Server<any> {
           return createSSEStream(sessionManager, req.signal);
         }
 
-        // GET /overlay/:token -> Serve overlay HTML
-        if (!subRoute && method === 'GET') {
+        const validWidgets = ['chat', 'likes', 'viewers', 'gift-alerts', 'likes-goal'];
+
+        // GET /overlay/:token OR GET /overlay/:token/:widget -> Serve overlay HTML
+        if ((!subRoute || validWidgets.includes(subRoute)) && method === 'GET') {
           const file = Bun.file(join(publicDir, 'overlay.html'));
           if (await file.exists()) {
             return new Response(file, {
-              headers: { 'Content-Type': 'text/html; charset=utf-8' },
+              headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Cache-Control': 'no-cache, must-revalidate',
+              },
             });
           }
           return new Response('OBS Overlay', { status: 200 });

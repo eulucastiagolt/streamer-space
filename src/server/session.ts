@@ -195,7 +195,7 @@ export class SessionManager {
   }
 
   private isDuplicate(id?: string): boolean {
-    if (!id) return false;
+    if (!id || id === '0') return false;
     if (this._seenEventIds.has(id)) {
       return true;
     }
@@ -402,7 +402,7 @@ export class SessionManager {
     const delta = like.count !== undefined && like.count > 0 ? like.count : 1;
 
     if (like.totalLikes !== undefined && like.totalLikes > 0) {
-      this._totalLikes = like.totalLikes;
+      this._totalLikes = Math.max(this._totalLikes, like.totalLikes);
       this._likesLabel = 'total de curtidas';
       this._hasRoomTotalLikes = true;
     } else {

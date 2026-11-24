@@ -881,7 +881,288 @@ body {
   color: var(--danger);
 }
 
+/* ==========================================================================
+   TikFinity-Style Modular OBS Widgets Section
+   ========================================================================== */
+
+.widgets-section {
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.widgets-tag {
+  background: rgba(0, 242, 254, 0.12);
+  color: #00f2fe;
+  border: 1px solid rgba(0, 242, 254, 0.35);
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.widgets-accordion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.widget-item-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.widget-item-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.widget-item-main {
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.widget-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 220px;
+  flex: 1;
+}
+
+.widget-item-icon {
+  font-size: 1.5rem;
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.widget-item-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.widget-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.widget-item-title-row h3 {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.widget-slug-badge {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.widget-item-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.widget-item-url-box {
+  flex: 1.5;
+  min-width: 220px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.widget-url-text {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: #38bdf8;
+  word-break: break-all;
+  display: block;
+}
+
+.widget-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+}
+
+/* Collapsible Config Area */
+.widget-config-collapse {
+  display: none;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid var(--border-subtle);
+  padding: 1.25rem;
+  animation: collapseFadeIn 0.2s ease-out;
+}
+
+.widget-config-collapse.open {
+  display: block;
+}
+
+@keyframes collapseFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.85rem;
+}
+
+.config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.config-field label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.config-field-full {
+  grid-column: 1 / -1;
+}
+
+.config-input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.84rem;
+  font-family: var(--font-mono);
+  transition: border-color var(--transition-fast);
+}
+
+.config-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.color-swatch {
+  -webkit-appearance: none;
+  border: 1px solid var(--border-subtle);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: transparent;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.color-swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-swatch::-webkit-color-swatch {
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.84rem;
+  color: var(--text-main);
+  cursor: pointer;
+  margin-top: 0.3rem;
+}
+
+.checkbox-label input[type="checkbox"] {
+  accent-color: var(--primary);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.config-actions {
+  margin-top: 1.15rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Gift Rules Editor inside Widget */
+.gift-rules-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.gift-rule-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.85rem;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 40px;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.gift-rule-card label {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
 /* Responsive */
+@media (max-width: 900px) {
+  .widget-item-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .widget-item-url-box {
+    width: 100%;
+  }
+  .widget-item-actions {
+    width: 100%;
+  }
+  .gift-rule-card {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .card-header {
     flex-direction: column;

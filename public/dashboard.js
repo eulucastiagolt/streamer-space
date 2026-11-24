@@ -148,8 +148,17 @@
   }
 
   function updateObsUrlDisplay() {
+    const origin = window.location.origin;
     const url = getObsOverlayUrl();
-    obsUrlDisplay.textContent = url;
+    if (obsUrlDisplay) obsUrlDisplay.textContent = url;
+
+    const widgetIds = ['chat', 'likes', 'viewers', 'gift-alerts', 'likes-goal'];
+    widgetIds.forEach(id => {
+      const el = document.getElementById(`url-widget-${id}`);
+      if (el) {
+        el.textContent = `${origin}/overlay/${overlayToken}/${id}`;
+      }
+    });
   }
 
   // Toast Notification
@@ -873,38 +882,362 @@
     });
   });
 
-  // Tab Switching (Painel da Live vs Editor de overlay)
-  const tabLive = document.getElementById('tab-live');
-  const tabEditor = document.getElementById('tab-editor');
-  const viewLive = document.getElementById('view-live');
-  const viewEditor = document.getElementById('view-editor');
-  const appLayout = document.querySelector('.app-layout');
+  // =========================================================================
+  // TikFinity-Style Modular OBS Widgets Configuration & Handlers
+  // =========================================================================
+  let currentOverlayConfig = null;
+  let currentGiftRules = [];
 
-  if (tabLive && tabEditor && viewLive && viewEditor) {
-    tabLive.addEventListener('click', () => {
-      tabLive.classList.add('active');
-      tabEditor.classList.remove('active');
-      viewLive.classList.add('active');
-      viewEditor.classList.remove('active');
-      if (appLayout) appLayout.classList.remove('editor-mode');
-    });
+  function setInputValue(key, value) {
+    const el = document.querySelector(`[data-cfg="${key}"]`);
+    if (el) el.value = value;
+  }
 
-    tabEditor.addEventListener('click', () => {
-      tabEditor.classList.add('active');
-      tabLive.classList.remove('active');
-      viewEditor.classList.add('active');
-      viewLive.classList.remove('active');
-      if (appLayout) appLayout.classList.add('editor-mode');
-      requestAnimationFrame(() => {
-        if (typeof window.initOverlayEditor === 'function') {
-          window.initOverlayEditor();
-        }
+  function getInputValue(key) {
+    const el = document.querySelector(`[data-cfg="${key}"]`);
+    return el ? el.value : '';
+  }
+
+  function setColorValue(key, value) {
+    const textEl = document.querySelector(`[data-cfg="${key}"]`);
+    const swatchEl = document.querySelector(`[data-cfg-color="${key}"]`);
+    if (textEl) textEl.value = value;
+    if (swatchEl) {
+      if (value && value.startsWith('#') && (value.length === 7 || value.length === 4)) {
+        swatchEl.value = value;
+      }
+    }
+  }
+
+  function renderGiftRulesEditor(rules) {
+    currentGiftRules = Array.isArray(rules) ? JSON.parse(JSON.stringify(rules)) : [];
+    const container = document.getElementById('gift-rules-editor-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (currentGiftRules.length === 0) {
+      container.innerHTML = '<span style="font-size: 0.78rem; color: var(--text-dim);">Nenhuma regra configurada (usa duração e cores padrão).</span>';
+      return;
+    }
+
+    currentGiftRules.forEach((rule, idx) => {
+      const card = document.createElement('div');
+      card.className = 'gift-rule-card';
+      card.innerHTML = `
+        <div>
+          <label>Nome da regra</label>
+          <input type="text" class="config-input rule-name" value="${rule.name || ''}" placeholder="Ex: Galáxia">
+        </div>
+        <div>
+          <label>ID do presente</label>
+          <input type="text" class="config-input rule-giftid" value="${rule.giftId || ''}" placeholder="Qualquer">
+        </div>
+        <div>
+          <label>Qtd. Mínima</label>
+          <input type="number" class="config-input rule-mincount" min="1" value="${rule.minCount || 1}">
+        </div>
+        <div>
+          <label>Duração (ms)</label>
+          <input type="number" class="config-input rule-dur" step="500" min="1000" value="${rule.durationMs || 4000}">
+        </div>
+        <div>
+          <label>Cor Banner</label>
+          <input type="color" class="color-swatch rule-color" value="${rule.bannerColor && rule.bannerColor.startsWith('#') ? rule.bannerColor : '#f59e0b'}">
+        </div>
+        <div style="display: flex; align-items: flex-end; justify-content: center;">
+          <button type="button" class="btn btn-ghost btn-sm btn-del-rule" title="Remover regra" style="color: var(--danger); padding: 4px 8px;">✕</button>
+        </div>
+      `;
+
+      card.querySelector('.btn-del-rule').addEventListener('click', () => {
+        currentGiftRules.splice(idx, 1);
+        renderGiftRulesEditor(currentGiftRules);
       });
+
+      card.querySelector('.rule-name').addEventListener('input', (e) => { rule.name = e.target.value; });
+      card.querySelector('.rule-giftid').addEventListener('input', (e) => { rule.giftId = e.target.value.trim() || undefined; });
+      card.querySelector('.rule-mincount').addEventListener('input', (e) => { rule.minCount = parseInt(e.target.value) || 1; });
+      card.querySelector('.rule-dur').addEventListener('input', (e) => { rule.durationMs = parseInt(e.target.value) || 4000; });
+      card.querySelector('.rule-color').addEventListener('input', (e) => { rule.bannerColor = e.target.value; });
+
+      container.appendChild(card);
+    });
+  }
+
+  function populateConfigForms(config) {
+    if (!config || !config.layouts || !config.layouts.horizontal) return;
+    const widgets = config.layouts.horizontal.widgets;
+    if (!widgets) return;
+
+    // Chat
+    if (widgets.chat) {
+      setInputValue('chat.style.fontSize', widgets.chat.style?.fontSize ?? 15);
+      setColorValue('chat.style.textColor', widgets.chat.style?.textColor ?? '#f8fafc');
+      setColorValue('chat.style.backgroundColor', widgets.chat.style?.backgroundColor ?? 'rgba(12, 16, 26, 0.82)');
+      setInputValue('chat.style.opacity', widgets.chat.style?.opacity ?? 1);
+      setInputValue('chat.style.borderRadius', widgets.chat.style?.borderRadius ?? 12);
+      setInputValue('chat.messageLimit', widgets.chat.messageLimit ?? 25);
+      const avatarCheckbox = document.querySelector('[data-cfg="chat.showAvatar"]');
+      if (avatarCheckbox) avatarCheckbox.checked = widgets.chat.showAvatar !== false;
+    }
+
+    // Likes
+    if (widgets.likes) {
+      setInputValue('likes.style.fontSize', widgets.likes.style?.fontSize ?? 18);
+      setColorValue('likes.style.textColor', widgets.likes.style?.textColor ?? '#ffffff');
+      setColorValue('likes.style.backgroundColor', widgets.likes.style?.backgroundColor ?? 'rgba(12, 16, 26, 0.82)');
+      setInputValue('likes.style.opacity', widgets.likes.style?.opacity ?? 1);
+      setInputValue('likes.style.borderRadius', widgets.likes.style?.borderRadius ?? 999);
+    }
+
+    // Viewers
+    if (widgets.viewers) {
+      setInputValue('viewers.style.fontSize', widgets.viewers.style?.fontSize ?? 16);
+      setColorValue('viewers.style.textColor', widgets.viewers.style?.textColor ?? '#38bdf8');
+      setColorValue('viewers.style.backgroundColor', widgets.viewers.style?.backgroundColor ?? 'rgba(12, 16, 26, 0.82)');
+      setInputValue('viewers.style.opacity', widgets.viewers.style?.opacity ?? 1);
+      setInputValue('viewers.style.borderRadius', widgets.viewers.style?.borderRadius ?? 999);
+    }
+
+    // Gift Alerts
+    if (widgets['gift-alerts']) {
+      const ga = widgets['gift-alerts'];
+      const durSec = ((ga.defaultDurationMs || 4000) / 1000).toFixed(1);
+      const durEl = document.getElementById('cfg-gift-dur-sec');
+      if (durEl) durEl.value = durSec;
+
+      setInputValue('gift-alerts.style.fontSize', ga.style?.fontSize ?? 16);
+      setColorValue('gift-alerts.style.textColor', ga.style?.textColor ?? '#ffffff');
+      setColorValue('gift-alerts.style.backgroundColor', ga.style?.backgroundColor ?? 'rgba(15, 23, 42, 0.85)');
+      setInputValue('gift-alerts.style.borderRadius', ga.style?.borderRadius ?? 16);
+
+      renderGiftRulesEditor(ga.rules || []);
+    }
+
+    // Likes Goal
+    if (widgets['likes-goal']) {
+      const lg = widgets['likes-goal'];
+      setInputValue('likes-goal.title', lg.title ?? 'Meta de Curtidas');
+      setInputValue('likes-goal.targetLikes', lg.targetLikes ?? 1000);
+      setInputValue('likes-goal.initialLikes', lg.initialLikes ?? 0);
+      setInputValue('likes-goal.style.fontSize', lg.style?.fontSize ?? 16);
+      setColorValue('likes-goal.style.textColor', lg.style?.textColor ?? '#ffffff');
+      setColorValue('likes-goal.style.backgroundColor', lg.style?.backgroundColor ?? 'rgba(12, 16, 26, 0.85)');
+    }
+  }
+
+  async function loadOverlayConfig() {
+    try {
+      const res = await fetch('/api/config');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.version === '1.0' && data.layouts) {
+          currentOverlayConfig = data;
+          populateConfigForms(data);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar /api/config:', e);
+    }
+  }
+
+  async function saveWidgetConfig(widgetId) {
+    if (!currentOverlayConfig) {
+      await loadOverlayConfig();
+    }
+    if (!currentOverlayConfig || !currentOverlayConfig.layouts) {
+      showToast('Configuração ainda não carregada.', 'error');
+      return;
+    }
+
+    const horiz = currentOverlayConfig.layouts.horizontal.widgets[widgetId];
+    const vert = currentOverlayConfig.layouts.vertical?.widgets[widgetId];
+
+    if (!horiz) {
+      showToast('Widget não encontrado na configuração.', 'error');
+      return;
+    }
+
+    if (widgetId === 'chat') {
+      const fontSize = parseFloat(getInputValue('chat.style.fontSize')) || 15;
+      const textColor = getInputValue('chat.style.textColor') || '#f8fafc';
+      const backgroundColor = getInputValue('chat.style.backgroundColor') || 'rgba(12, 16, 26, 0.82)';
+      const opacity = parseFloat(getInputValue('chat.style.opacity')) ?? 1;
+      const borderRadius = parseFloat(getInputValue('chat.style.borderRadius')) || 12;
+      const messageLimit = parseInt(getInputValue('chat.messageLimit')) || 25;
+      const showAvatar = document.querySelector('[data-cfg="chat.showAvatar"]')?.checked ?? true;
+
+      horiz.style = { ...horiz.style, fontSize, textColor, backgroundColor, opacity, borderRadius };
+      horiz.messageLimit = messageLimit;
+      horiz.showAvatar = showAvatar;
+      if (vert) {
+        vert.style = { ...vert.style, fontSize, textColor, backgroundColor, opacity, borderRadius };
+        vert.messageLimit = messageLimit;
+        vert.showAvatar = showAvatar;
+      }
+    } else if (widgetId === 'likes') {
+      const fontSize = parseFloat(getInputValue('likes.style.fontSize')) || 18;
+      const textColor = getInputValue('likes.style.textColor') || '#ffffff';
+      const backgroundColor = getInputValue('likes.style.backgroundColor') || 'rgba(12, 16, 26, 0.82)';
+      const opacity = parseFloat(getInputValue('likes.style.opacity')) ?? 1;
+      const borderRadius = parseFloat(getInputValue('likes.style.borderRadius')) ?? 999;
+
+      horiz.style = { ...horiz.style, fontSize, textColor, backgroundColor, opacity, borderRadius };
+      if (vert) vert.style = { ...vert.style, fontSize, textColor, backgroundColor, opacity, borderRadius };
+    } else if (widgetId === 'viewers') {
+      const fontSize = parseFloat(getInputValue('viewers.style.fontSize')) || 16;
+      const textColor = getInputValue('viewers.style.textColor') || '#38bdf8';
+      const backgroundColor = getInputValue('viewers.style.backgroundColor') || 'rgba(12, 16, 26, 0.82)';
+      const opacity = parseFloat(getInputValue('viewers.style.opacity')) ?? 1;
+      const borderRadius = parseFloat(getInputValue('viewers.style.borderRadius')) ?? 999;
+
+      horiz.style = { ...horiz.style, fontSize, textColor, backgroundColor, opacity, borderRadius };
+      if (vert) vert.style = { ...vert.style, fontSize, textColor, backgroundColor, opacity, borderRadius };
+    } else if (widgetId === 'gift-alerts') {
+      const durSec = parseFloat(document.getElementById('cfg-gift-dur-sec')?.value) || 4;
+      const defaultDurationMs = Math.round(durSec * 1000);
+      const fontSize = parseFloat(getInputValue('gift-alerts.style.fontSize')) || 16;
+      const textColor = getInputValue('gift-alerts.style.textColor') || '#ffffff';
+      const backgroundColor = getInputValue('gift-alerts.style.backgroundColor') || 'rgba(15, 23, 42, 0.85)';
+      const borderRadius = parseFloat(getInputValue('gift-alerts.style.borderRadius')) || 16;
+
+      horiz.defaultDurationMs = defaultDurationMs;
+      horiz.rules = currentGiftRules;
+      horiz.style = { ...horiz.style, fontSize, textColor, backgroundColor, borderRadius };
+      if (vert) {
+        vert.defaultDurationMs = defaultDurationMs;
+        vert.rules = currentGiftRules;
+        vert.style = { ...vert.style, fontSize, textColor, backgroundColor, borderRadius };
+      }
+    } else if (widgetId === 'likes-goal') {
+      const title = getInputValue('likes-goal.title') || 'Meta de Curtidas';
+      const targetLikes = parseInt(getInputValue('likes-goal.targetLikes')) || 1000;
+      const initialLikes = parseInt(getInputValue('likes-goal.initialLikes')) || 0;
+      const fontSize = parseFloat(getInputValue('likes-goal.style.fontSize')) || 16;
+      const textColor = getInputValue('likes-goal.style.textColor') || '#ffffff';
+      const backgroundColor = getInputValue('likes-goal.style.backgroundColor') || 'rgba(12, 16, 26, 0.85)';
+
+      horiz.title = title;
+      horiz.targetLikes = targetLikes;
+      horiz.initialLikes = initialLikes;
+      horiz.style = { ...horiz.style, fontSize, textColor, backgroundColor };
+      if (vert) {
+        vert.title = title;
+        vert.targetLikes = targetLikes;
+        vert.initialLikes = initialLikes;
+        vert.style = { ...vert.style, fontSize, textColor, backgroundColor };
+      }
+    }
+
+    try {
+      currentOverlayConfig.lastUpdatedAt = new Date().toISOString();
+      const res = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentOverlayConfig)
+      });
+      if (res.ok) {
+        showToast('Configurações salvas e aplicadas a todos os overlays no OBS!');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(`Erro ao salvar: ${err.error || 'Falha na requisição'}`, 'error');
+      }
+    } catch (e) {
+      showToast('Falha na comunicação ao salvar configurações.', 'error');
+    }
+  }
+
+  // --- Attach Widget UI Listeners ---
+  // 1. Copy Buttons
+  document.querySelectorAll('.btn-copy-widget').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const widget = btn.dataset.widget;
+      const url = `${window.location.origin}/overlay/${overlayToken}/${widget}`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url)
+          .then(() => showToast(`URL do widget /${widget} copiada!`))
+          .catch(() => fallbackCopy(url));
+      } else {
+        fallbackCopy(url);
+      }
+    });
+  });
+
+  // 2. Preview Buttons
+  document.querySelectorAll('.btn-preview-widget').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const widget = btn.dataset.widget;
+      const w = btn.dataset.w || 480;
+      const h = btn.dataset.h || 400;
+      const url = `${window.location.origin}/overlay/${overlayToken}/${widget}`;
+      window.open(url, '_blank', `width=${w},height=${h},menubar=no,toolbar=no`);
+    });
+  });
+
+  // 3. Toggle Config Panels
+  document.querySelectorAll('.btn-toggle-config').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const panel = document.getElementById(targetId);
+      if (panel) {
+        panel.classList.toggle('open');
+      }
+    });
+  });
+
+  // 4. Color Swatches Syncing
+  document.querySelectorAll('.color-swatch').forEach(swatch => {
+    swatch.addEventListener('input', () => {
+      const cfgKey = swatch.dataset.cfgColor;
+      if (cfgKey) {
+        const textInp = document.querySelector(`[data-cfg="${cfgKey}"]`);
+        if (textInp) textInp.value = swatch.value;
+      }
+    });
+  });
+
+  // 5. Save Widget Config Buttons
+  document.querySelectorAll('.btn-save-widget-config').forEach(btn => {
+    btn.addEventListener('click', () => {
+      saveWidgetConfig(btn.dataset.widget);
+    });
+  });
+
+  // 6. Test Alert in Realtime
+  const btnTriggerTestAlert = document.getElementById('btn-trigger-test-alert');
+  if (btnTriggerTestAlert) {
+    btnTriggerTestAlert.addEventListener('click', () => {
+      sendSimulatedEvent({
+        type: 'gift',
+        action: 'gift',
+        giftName: 'Rosa',
+        count: 3,
+        diamondCount: 3,
+        username: 'Lucas_Tester'
+      });
+      showToast('Alerta de teste disparado!');
+    });
+  }
+
+  // 7. Add Gift Rule Button
+  const btnAddGiftRule = document.getElementById('btn-add-gift-rule');
+  if (btnAddGiftRule) {
+    btnAddGiftRule.addEventListener('click', () => {
+      currentGiftRules.push({
+        id: `rule-${Date.now()}`,
+        name: `Nova Regra (${currentGiftRules.length + 1})`,
+        minCount: 1,
+        durationMs: 4000,
+        bannerColor: '#f59e0b'
+      });
+      renderGiftRulesEditor(currentGiftRules);
     });
   }
 
   // Initialization
   updateObsUrlDisplay();
+  loadOverlayConfig();
   fetchStatus();
   initSSE();
 

@@ -66,6 +66,45 @@ describe('Headless and E2E Browser Verification', () => {
     expect(domOutput).toContain('placeholder="@username"');
     expect(domOutput).toContain('Simulação');
     expect(domOutput).toContain('badge');
+    expect(domOutput).toContain('Widgets e URLs para OBS');
+    expect(domOutput).toContain('Chat da Live');
+    expect(domOutput).toContain('Contador de Curtidas');
+    expect(domOutput).toContain('Espectadores');
+    expect(domOutput).toContain('Alertas de Presentes');
+    expect(domOutput).toContain('Meta de Curtidas');
+  });
+
+  it('renders individual modular widget routes in Headless Chromium with 1:1 scale and isolation', async () => {
+    // 1. Chat widget dedicated route
+    const chatProc = Bun.spawn([
+      'chromium',
+      '--headless',
+      '--disable-gpu',
+      '--no-sandbox',
+      '--default-background-color=00000000',
+      '--dump-dom',
+      `${baseUrl}/overlay/${overlayToken}/chat`,
+    ]);
+    expect(await chatProc.exited).toBe(0);
+    const chatDom = await new Response(chatProc.stdout).text();
+    expect(chatDom).toContain('id="chat-widget"');
+    expect(chatDom).toContain('data-widget="chat"');
+    expect(chatDom).toContain('id="overlay-app"');
+
+    // 2. Likes-goal dedicated route
+    const goalProc = Bun.spawn([
+      'chromium',
+      '--headless',
+      '--disable-gpu',
+      '--no-sandbox',
+      '--default-background-color=00000000',
+      '--dump-dom',
+      `${baseUrl}/overlay/${overlayToken}/likes-goal`,
+    ]);
+    expect(await goalProc.exited).toBe(0);
+    const goalDom = await new Response(goalProc.stdout).text();
+    expect(goalDom).toContain('id="likes-goal-widget"');
+    expect(goalDom).toContain('data-widget="likes-goal"');
   });
 
   it('renders OBS Overlay in Headless Chromium with horizontal 1920x1080 resolution', async () => {

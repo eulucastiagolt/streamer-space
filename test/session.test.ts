@@ -82,6 +82,24 @@ describe('SessionManager - Like Aggregation', () => {
     expect(session.totalLikes).toBe(1500);
     expect(session.getSnapshot().likesLabel).toBe('total de curtidas');
   });
+
+  it('maintains monotonic totalLikes and never rolls back if out-of-order frames arrive', async () => {
+    const session = new SessionManager();
+    session.handleLike({
+      id: 'like-total-1',
+      count: 10,
+      totalLikes: 2000,
+    });
+    expect(session.totalLikes).toBe(2000);
+
+    // Stale/out-of-order frame reporting lower total
+    session.handleLike({
+      id: 'like-total-late',
+      count: 5,
+      totalLikes: 1850,
+    });
+    expect(session.totalLikes).toBe(2000); // Does not roll back
+  });
 });
 
 describe('SessionManager - Gift Streak Aggregation', () => {
@@ -269,6 +287,24 @@ describe('SessionManager - Deduplication by providerEventId', () => {
     const giftEvents = events.filter((e) => e.type === 'gift.completed');
     expect(giftEvents.length).toBe(1);
     expect(session.getSnapshot().recentGifts.length).toBe(1);
+  });
+
+  it('never drops events with protobuf "0", empty string, or undefined msgId', () => {
+    const session = new SessionManager();
+    expect(session.totalLikes).toBe(0);
+
+    // Like batches from TikTok protobuf often have msgId "0" or unset
+    session.handleLike({ id: '0', count: 10 });
+    expect(session.totalLikes).toBe(10);
+
+    session.handleLike({ id: '0', count: 15 });
+    expect(session.totalLikes).toBe(25);
+
+    session.handleLike({ id: '', count: 5 });
+    expect(session.totalLikes).toBe(30);
+
+    session.handleLike({ id: undefined, count: 5 });
+    expect(session.totalLikes).toBe(35);
   });
 });
 

@@ -6,7 +6,6 @@
   <meta name="referrer" content="no-referrer">
   <title>Streamer Space — Painel TikTok LIVE</title>
   <link rel="stylesheet" href="/dashboard.css">
-  <link rel="stylesheet" href="/editor.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -28,23 +27,6 @@
         </div>
       </div>
 
-      <!-- Navigation Tabs -->
-      <nav class="dashboard-nav-tabs">
-        <button id="tab-live" class="nav-tab-btn active">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-          </svg>
-          Painel da Live
-        </button>
-        <button id="tab-editor" class="nav-tab-btn">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="9" y1="3" x2="9" y2="21"></line>
-          </svg>
-          Editor de overlay
-        </button>
-      </nav>
-
       <div class="header-status">
         <div class="status-indicator-pill">
           <span class="status-dot-pulse"></span>
@@ -54,329 +36,628 @@
     </header>
 
     <main class="main-content">
-      <!-- ========================================== -->
-      <!-- VIEW 1: LIVE DASHBOARD                     -->
-      <!-- ========================================== -->
-      <div id="view-live" class="view-pane active">
-        <!-- Top Row: Connection and OBS Link -->
-        <section class="card connection-card">
-          <div class="card-header">
-            <div class="card-title-group">
-              <h2>Conexão da Live</h2>
-              <p class="card-desc">Conecte uma live pública do TikTok para capturar eventos em tempo real.</p>
-            </div>
-            <!-- Distinct State Badges Container -->
-            <div id="status-badge-container">
-              <span id="status-badge" class="badge badge-idle">Desconectado</span>
-            </div>
+      <!-- Section 1: Live Connection -->
+      <section class="card connection-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <h2>Conexão da Live</h2>
+            <p class="card-desc">Conecte uma live pública do TikTok para capturar eventos em tempo real.</p>
           </div>
-
-          <div class="connection-form-container">
-            <div class="input-group">
-              <label for="username-input" class="input-label">Username do streamer no TikTok</label>
-              <div class="input-wrapper">
-                <span class="input-prefix">@</span>
-                <input 
-                  type="text" 
-                  id="username-input" 
-                  class="text-input" 
-                  placeholder="@username" 
-                  value="" 
-                  autocomplete="off" 
-                  spellcheck="false"
-                />
-              </div>
-              <div id="input-feedback" class="input-feedback"></div>
-            </div>
-
-            <div class="actions-row">
-              <button id="btn-connect" class="btn btn-primary">
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-                Conectar
-              </button>
-              <button id="btn-disconnect" class="btn btn-danger" disabled>
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                </svg>
-                Desconectar
-              </button>
-              <button id="btn-preview" class="btn btn-secondary">
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                Abrir prévia
-              </button>
-              <button id="btn-copy-url" class="btn btn-secondary">
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                Copiar URL do OBS
-              </button>
-            </div>
-          </div>
-
-          <!-- OBS Overlay Info Panel -->
-          <div class="obs-url-box">
-            <div class="obs-url-label">
-              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-              </svg>
-              <span>URL da Fonte de Navegador do OBS (Browser Source)</span>
-            </div>
-            <div class="obs-url-field">
-              <code id="obs-url-display">Carregando URL do overlay...</code>
-              <button id="btn-quick-copy" class="btn-icon" title="Copiar URL">
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-              </button>
-            </div>
-            <p class="obs-url-hint">No OBS Studio, adicione uma <strong>Fonte de Navegador</strong>, cole a URL acima e desmarque a opção <em>Arquivo local</em>. Funciona tanto em 1920x1080 (horizontal) quanto 1080x1920 (vertical).</p>
-          </div>
-        </section>
-
-        <!-- Metrics Row -->
-        <section class="metrics-grid">
-          <div class="metric-card">
-            <div class="metric-icon metric-icon-viewers">
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-            </div>
-            <div class="metric-content">
-              <span class="metric-title">Espectadores</span>
-              <span id="metric-viewers" class="metric-value">—</span>
-            </div>
-          </div>
-
-          <div class="metric-card">
-            <div class="metric-icon metric-icon-likes">
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-              </svg>
-            </div>
-            <div class="metric-content">
-              <span class="metric-title" id="metric-likes-label">Total de Curtidas</span>
-              <span id="metric-likes" class="metric-value">0</span>
-            </div>
-          </div>
-
-          <div class="metric-card">
-            <div class="metric-icon metric-icon-gifts">
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
-                <polyline points="20 12 20 22 4 22 4 12"></polyline>
-                <rect x="2" y="7" width="20" height="5"></rect>
-                <line x1="12" y1="22" x2="12" y2="7"></line>
-                <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
-                <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
-              </svg>
-            </div>
-            <div class="metric-content">
-              <span class="metric-title">Presentes Recebidos</span>
-              <span id="metric-gifts" class="metric-value">0</span>
-            </div>
-          </div>
-
-          <div class="metric-card">
-            <div class="metric-icon metric-icon-chat">
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </div>
-            <div class="metric-content">
-              <span class="metric-title">Mensagens no Chat</span>
-              <span id="metric-chats" class="metric-value">0</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- Simulation Section -->
-        <section class="card simulation-card" id="simulation-section">
-          <div class="card-header">
-            <div class="card-title-group">
-              <div class="sim-badge-title">
-                <h2>Simulação</h2>
-                <span class="sim-tag">Modo de Teste</span>
-              </div>
-              <p class="card-desc">Gere eventos sintéticos para validar o fluxo de dados, visualização no painel e renderização no overlay do OBS.</p>
-            </div>
-          </div>
-
-          <div class="simulation-actions-grid">
-            <button id="btn-sim-chat" class="btn btn-sim">
-              <div class="btn-sim-icon">💬</div>
-              <div class="btn-sim-text">
-                <span class="btn-sim-title">Chat simulado</span>
-                <span class="btn-sim-desc">Envia mensagem de usuário fictício</span>
-              </div>
-            </button>
-
-            <button id="btn-sim-like" class="btn btn-sim">
-              <div class="btn-sim-icon">❤️</div>
-              <div class="btn-sim-text">
-                <span class="btn-sim-title">Lote de curtidas</span>
-                <span class="btn-sim-desc">Dispara lote de +15 curtidas</span>
-              </div>
-            </button>
-
-            <button id="btn-sim-gift" class="btn btn-sim">
-              <div class="btn-sim-icon">🌹</div>
-              <div class="btn-sim-text">
-                <span class="btn-sim-title">Presente avulso</span>
-                <span class="btn-sim-desc">Envia 1 Rosa imediatamente</span>
-              </div>
-            </button>
-
-            <button id="btn-sim-streak" class="btn btn-sim btn-sim-highlight">
-              <div class="btn-sim-icon">🔥</div>
-              <div class="btn-sim-text">
-                <span class="btn-sim-title">Combo streak (1→2→3)</span>
-                <span class="btn-sim-desc">Dispara sequência e alerta final de 3</span>
-              </div>
-            </button>
-          </div>
-        </section>
-
-        <!-- Live Event Feed -->
-        <section class="card feed-card">
-          <div class="card-header feed-header">
-            <div class="card-title-group">
-              <h2>Feed de Eventos em Tempo Real</h2>
-              <p class="card-desc">Mensagens de chat, curtidas, presentes e mudanças de status da sala.</p>
-            </div>
-            <div class="feed-controls">
-              <div class="feed-filters">
-                <button class="filter-chip active" data-filter="all">Todos</button>
-                <button class="filter-chip" data-filter="chat">Chat</button>
-                <button class="filter-chip" data-filter="like">Curtidas</button>
-                <button class="filter-chip" data-filter="gift">Presentes</button>
-              </div>
-              <button id="btn-clear-feed" class="btn btn-ghost" title="Limpar visualização do feed">
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-                Limpar
-              </button>
-            </div>
-          </div>
-
-          <div id="event-feed" class="event-feed-list" aria-live="polite">
-            <div class="feed-empty-state" id="feed-empty-state">
-              <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="1.5" fill="none">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-              </svg>
-              <p>Nenhum evento registrado ainda.</p>
-              <span>Conecte uma live ou use os botões da seção de Simulação para começar.</span>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- ========================================== -->
-      <!-- VIEW 2: VISUAL OVERLAY EDITOR              -->
-      <!-- ========================================== -->
-      <div id="view-editor" class="view-pane">
-        <div class="editor-workspace">
-          <!-- Editor Toolbar -->
-          <div class="editor-toolbar">
-            <!-- Left: Orientation Toggle -->
-            <div class="toolbar-section">
-              <span class="toolbar-title">
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                  <line x1="8" y1="21" x2="16" y2="21"></line>
-                  <line x1="12" y1="17" x2="12" y2="21"></line>
-                </svg>
-                Orientação:
-              </span>
-              <div class="segmented-control">
-                <button id="btn-orient-horiz" class="segment-btn active">Horizontal (1920 × 1080)</button>
-                <button id="btn-orient-vert" class="segment-btn">Vertical (1080 × 1920)</button>
-              </div>
-            </div>
-
-            <!-- Center: Zoom Controls -->
-            <div class="toolbar-section">
-              <div class="zoom-controls">
-                <button id="btn-zoom-out" class="zoom-btn" title="Diminuir Zoom">−</button>
-                <span id="zoom-level-text" class="zoom-level-text">50%</span>
-                <button id="btn-zoom-in" class="zoom-btn" title="Aumentar Zoom">+</button>
-                <button class="zoom-preset-btn" data-zoom="50">50%</button>
-                <button class="zoom-preset-btn" data-zoom="75">75%</button>
-                <button class="zoom-preset-btn" data-zoom="100">100%</button>
-                <button id="btn-zoom-fit" class="zoom-preset-btn">Ajustar à tela</button>
-              </div>
-            </div>
-
-            <!-- Right: Status & Actions -->
-            <div class="toolbar-section">
-              <span id="editor-status-badge" class="editor-status-badge editor-status-saved">Salvo</span>
-              <button id="btn-save-config" class="btn btn-primary" disabled>
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                Salvar e aplicar
-              </button>
-              <button id="btn-discard-config" class="btn btn-secondary" disabled>Descartar alterações</button>
-              <button id="btn-reset-config" class="btn btn-ghost" title="Restaurar padrões">Restaurar padrões</button>
-              <button id="btn-test-preview" class="btn btn-secondary" title="Abrir prévia ao vivo">Testar no preview</button>
-            </div>
-          </div>
-
-          <!-- 3-Column Workspace Main Area -->
-          <div class="editor-main-area">
-            <!-- Left: Layers List -->
-            <aside class="editor-layers-panel">
-              <div class="panel-header">
-                <div>
-                  <div class="panel-title">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
-                      <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                      <polyline points="2 17 12 22 22 17"></polyline>
-                      <polyline points="2 12 12 17 22 12"></polyline>
-                    </svg>
-                    Camadas
-                  </div>
-                  <div class="panel-subtitle">Elementos do layout</div>
-                </div>
-              </div>
-              <div class="layers-list" id="layers-list">
-                <!-- Dynamically populated layers -->
-              </div>
-            </aside>
-
-            <!-- Center: Interactive Canvas -->
-            <div class="editor-canvas-viewport" id="editor-canvas-viewport">
-              <div class="canvas-wrapper" id="canvas-wrapper">
-                <div class="canvas-stage" id="canvas-stage">
-                  <div class="canvas-watermark" id="canvas-watermark">1920 × 1080 (16:9)</div>
-                  <!-- Dynamically rendered widgets and resize handles -->
-                </div>
-              </div>
-            </div>
-
-            <!-- Right: Property Inspector -->
-            <aside class="editor-inspector-panel" id="editor-inspector-panel">
-              <!-- Dynamically populated property inspector -->
-            </aside>
+          <!-- Distinct State Badges Container -->
+          <div id="status-badge-container">
+            <span id="status-badge" class="badge badge-idle">Desconectado</span>
           </div>
         </div>
-      </div>
+
+        <div class="connection-form-container">
+          <div class="input-group">
+            <label for="username-input" class="input-label">Username do streamer no TikTok</label>
+            <div class="input-wrapper">
+              <span class="input-prefix">@</span>
+              <input 
+                type="text" 
+                id="username-input" 
+                class="text-input" 
+                placeholder="@username" 
+                value="" 
+                autocomplete="off" 
+                spellcheck="false"
+              />
+            </div>
+            <div id="input-feedback" class="input-feedback"></div>
+          </div>
+
+          <div class="actions-row">
+            <button id="btn-connect" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              Conectar
+            </button>
+            <button id="btn-disconnect" class="btn btn-danger" disabled>
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              </svg>
+              Desconectar
+            </button>
+            <button id="btn-preview" class="btn btn-secondary">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              Abrir prévia
+            </button>
+            <button id="btn-copy-url" class="btn btn-secondary">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copiar URL do OBS
+            </button>
+          </div>
+        </div>
+
+        <!-- General Combined OBS Overlay URL info -->
+        <div class="obs-url-box">
+          <div class="obs-url-label">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span>URL Geral do Overlay Combinado (Todos os widgets na mesma tela)</span>
+          </div>
+          <div class="obs-url-field">
+            <code id="obs-url-display">Carregando URL do overlay...</code>
+            <button id="btn-quick-copy" class="btn-icon" title="Copiar URL Geral">
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Widgets & Dedicated URLs for OBS (TikFinity Style) -->
+      <section class="card widgets-section" id="obs-widgets-section">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <h2>Widgets e URLs para OBS</h2>
+              <span class="widgets-tag">TikFinity Style</span>
+            </div>
+            <p class="card-desc">Adicione cada elemento individualmente no OBS Studio como uma Fonte de Navegador transparente, ou ajuste sua aparência em tempo real.</p>
+          </div>
+        </div>
+
+        <div class="widgets-accordion-list">
+          
+          <!-- Widget 1: Chat -->
+          <div class="widget-item-card" id="widget-card-chat">
+            <div class="widget-item-main">
+              <div class="widget-item-header">
+                <div class="widget-item-icon">💬</div>
+                <div class="widget-item-meta">
+                  <div class="widget-item-title-row">
+                    <h3>Chat da Live</h3>
+                    <code class="widget-slug-badge">/chat</code>
+                  </div>
+                  <p class="widget-item-desc">Mensagens do chat com avatares e emojis secretos do TikTok.</p>
+                </div>
+              </div>
+
+              <div class="widget-item-url-box">
+                <code class="widget-url-text" id="url-widget-chat">http://127.0.0.1:3000/overlay/token/chat</code>
+              </div>
+
+              <div class="widget-item-actions">
+                <button class="btn btn-secondary btn-sm btn-copy-widget" data-widget="chat">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  Copiar URL
+                </button>
+                <button class="btn btn-secondary btn-sm btn-preview-widget" data-widget="chat" data-w="480" data-h="620">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  Abrir prévia
+                </button>
+                <button class="btn btn-ghost btn-sm btn-toggle-config" data-target="config-chat">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  Configurar
+                </button>
+              </div>
+            </div>
+
+            <!-- Inline Config Box -->
+            <div class="widget-config-collapse" id="config-chat">
+              <div class="config-grid">
+                <div class="config-field">
+                  <label>Tamanho da fonte</label>
+                  <input type="number" class="config-input" data-cfg="chat.style.fontSize" min="10" max="48" value="15">
+                </div>
+                <div class="config-field">
+                  <label>Cor do texto</label>
+                  <div class="color-picker-row">
+                    <input type="color" class="color-swatch" data-cfg-color="chat.style.textColor" value="#f8fafc">
+                    <input type="text" class="config-input" data-cfg="chat.style.textColor" value="#f8fafc">
+                  </div>
+                </div>
+                <div class="config-field">
+                  <label>Cor de fundo</label>
+                  <div class="color-picker-row">
+                    <input type="color" class="color-swatch" data-cfg-color="chat.style.backgroundColor" value="#0c101a">
+                    <input type="text" class="config-input" data-cfg="chat.style.backgroundColor" value="rgba(12, 16, 26, 0.82)">
+                  </div>
+                </div>
+                <div class="config-field">
+                  <label>Opacidade (0.0 a 1.0)</label>
+                  <input type="number" class="config-input" data-cfg="chat.style.opacity" step="0.05" min="0" max="1" value="1">
+                </div>
+                <div class="config-field">
+                  <label>Raio da borda (px)</label>
+                  <input type="number" class="config-input" data-cfg="chat.style.borderRadius" min="0" max="100" value="12">
+                </div>
+                <div class="config-field">
+                  <label>Limite de mensagens</label>
+                  <input type="number" class="config-input" data-cfg="chat.messageLimit" min="5" max="100" value="25">
+                </div>
+                <div class="config-field config-field-full">
+                  <label class="checkbox-label">
+                    <input type="checkbox" data-cfg="chat.showAvatar" checked>
+                    <span>Exibir foto de perfil / avatar no chat</span>
+                  </label>
+                </div>
+              </div>
+              <div class="config-actions">
+                <button class="btn btn-primary btn-sm btn-save-widget-config" data-widget="chat">Salvar configurações do Chat</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Widget 2: Likes -->
+          <div class="widget-item-card" id="widget-card-likes">
+            <div class="widget-item-main">
+              <div class="widget-item-header">
+                <div class="widget-item-icon">❤️</div>
+                <div class="widget-item-meta">
+                  <div class="widget-item-title-row">
+                    <h3>Contador de Curtidas</h3>
+                    <code class="widget-slug-badge">/likes</code>
+                  </div>
+                  <p class="widget-item-desc">Pílula estilizada com pulso cardíaco e partículas de corações flutuantes.</p>
+                </div>
+              </div>
+
+              <div class="widget-item-url-box">
+                <code class="widget-url-text" id="url-widget-likes">http://127.0.0.1:3000/overlay/token/likes</code>
+              </div>
+
+              <div class="widget-item-actions">
+                <button class="btn btn-secondary btn-sm btn-copy-widget" data-widget="likes">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  Copiar URL
+                </button>
+                <button class="btn btn-secondary btn-sm btn-preview-widget" data-widget="likes" data-w="380" data-h="180">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  Abrir prévia
+                </button>
+                <button class="btn btn-ghost btn-sm btn-toggle-config" data-target="config-likes">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  Configurar
+                </button>
+              </div>
+            </div>
+
+            <!-- Inline Config Box -->
+            <div class="widget-config-collapse" id="config-likes">
+              <div class="config-grid">
+                <div class="config-field">
+                  <label>Tamanho da fonte</label>
+                  <input type="number" class="config-input" data-cfg="likes.style.fontSize" min="12" max="48" value="18">
+                </div>
+                <div class="config-field">
+                  <label>Cor do texto</label>
+                  <div class="color-picker-row">
+                    <input type="color" class="color-swatch" data-cfg-color="likes.style.textColor" value="#ffffff">
+                    <input type="text" class="config-input" data-cfg="likes.style.textColor" value="#ffffff">
+                  </div>
+                </div>
+                <div class="config-field">
+                  <label>Cor de fundo</label>
+                  <div class="color-picker-row">
+                    <input type="color" class="color-swatch" data-cfg-color="likes.style.backgroundColor" value="#0c101a">
+                    <input type="text" class="config-input" data-cfg="likes.style.backgroundColor" value="rgba(12, 16, 26, 0.82)">
+                  </div>
+                </div>
+                <div class="config-field">
+                  <label>Opacidade</label>
+                  <input type="number" class="config-input" data-cfg="likes.style.opacity" step="0.05" min="0" max="1" value="1">
+                </div>
+                <div class="config-field">
+                  <label>Raio da borda (px)</label>
+                  <input type="number" class="config-input" data-cfg="likes.style.borderRadius" min="0" max="999" value="999">
+                </div>
+              </div>
+              <div class="config-actions">
+                <button class="btn btn-primary btn-sm btn-save-widget-config" data-widget="likes">Salvar configurações de Curtidas</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Widget 3: Viewers -->
+          <div class="widget-item-card" id="widget-card-viewers">
+            <div class="widget-item-main">
+              <div class="widget-item-header">
+                <div class="widget-item-icon">👁️</div>
+                <div class="widget-item-meta">
+                  <div class="widget-item-title-row">
+                    <h3>Espectadores</h3>
+                    <code class="widget-slug-badge">/viewers</code>
+                  </div>
+                  <p class="widget-item-desc">Contador compacto de espectadores simultâneos na live.</p>
+                </div>
+              </div>
+
+              <div class="widget-item-url-box">
+                <code class="widget-url-text" id="url-widget-viewers">http://127.0.0.1:3000/overlay/token/viewers</code>
+              </div>
+
+              <div class="widget-item-actions">
+                <button class="btn btn-secondary btn-sm btn-copy-widget" data-widget="viewers">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  Copiar URL
+                </button>
+                <button class="btn btn-secondary btn-sm btn-preview-widget" data-widget="viewers" data-w="280" data-h="140">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  Abrir prévia
+                </button>
+                <button class="btn btn-ghost btn-sm btn-toggle-config" data-target="config-viewers">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  Configurar
+                </button>
+              </div>
+            </div>
+
+            <!-- Inline Config Box -->
+            <div class="widget-config-collapse" id="config-viewers">
+              <div class="config-grid">
+                <div class="config-field">
+                  <label>Tamanho da fonte</label>
+                  <input type="number" class="config-input" data-cfg="viewers.style.fontSize" min="12" max="48" value="16">
+                </div>
+                <div class="config-field">
+                  <label>Cor do texto</label>
+                  <div class="color-picker-row">
+                    <input type="color" class="color-swatch" data-cfg-color="viewers.style.textColor" value="#38bdf8">
+                    <input type="text" class="config-input" data-cfg="viewers.style.textColor" value="#38bdf8">
+                  </div>
+                </div>
+                <div class="config-field">
+                  <label>Cor de fundo</label>
+                  <div class="color-picker-row">
+                    <input type="color" class="color-swatch" data-cfg-color="viewers.style.backgroundColor" value="#0c101a">
+                    <input type="text" class="config-input" data-cfg="viewers.style.backgroundColor" value="rgba(12, 16, 26, 0.82)">
+                  </div>
+                </div>
+                <div class="config-field">
+                  <label>Opacidade</label>
+                  <input type="number" class="config-input" data-cfg="viewers.style.opacity" step="0.05" min="0" max="1" value="1">
+                </div>
+                <div class="config-field">
+                  <label>Raio da borda (px)</label>
+                  <input type="number" class="config-input" data-cfg="viewers.style.borderRadius" min="0" max="999" value="999">
+                </div>
+              </div>
+              <div class="config-actions">
+                <button class="btn btn-primary btn-sm btn-save-widget-config" data-widget="viewers">Salvar configurações de Espectadores</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Widget 4: Gift Alerts -->
+          <div class="widget-item-card" id="widget-card-gift-alerts">
+            <div class="widget-item-main">
+              <div class="widget-item-header">
+                <div class="widget-item-icon">🎁</div>
+                <div class="widget-item-meta">
+                  <div class="widget-item-title-row">
+                    <h3>Alertas de Presentes</h3>
+                    <code class="widget-slug-badge">/gift-alerts</code>
+                  </div>
+                  <p class="widget-item-desc">Banners animados de presentes com combos e regras personalizadas de cor e duração.</p>
+                </div>
+              </div>
+
+              <div class="widget-item-url-box">
+                <code class="widget-url-text" id="url-widget-gift-alerts">http://127.0.0.1:3000/overlay/token/gift-alerts</code>
+              </div>
+
+              <div class="widget-item-actions">
+                <button class="btn btn-secondary btn-sm btn-copy-widget" data-widget="gift-alerts">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  Copiar URL
+                </button>
+                <button class="btn btn-secondary btn-sm btn-preview-widget" data-widget="gift-alerts" data-w="560" data-h="280">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  Abrir prévia
+                </button>
+                <button class="btn btn-ghost btn-sm btn-toggle-config" data-target="config-gift-alerts">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  Configurar
+                </button>
+              </div>
+            </div>
+
+            <!-- Inline Config Box -->
+            <div class="widget-config-collapse" id="config-gift-alerts">
+              <div class="config-grid">
+                <div class="config-field">
+                  <label>Duração padrão (segundos)</label>
+                  <input type="number" class="config-input" id="cfg-gift-dur-sec" step="0.5" min="1" max="30" value="4.0">
+                </div>
+                <div class="config-field">
+                  <label>Tamanho da fonte</label>
+                  <input type="number" class="config-input" data-cfg="gift-alerts.style.fontSize" min="12" max="48" value="16">
+                </div>
+                <div class="config-field">
+                  <label>Cor do texto</label>
+                  <div class="color-picker-row">
+                    <input type="color" class="color-swatch" data-cfg-color="gift-alerts.style.textColor" value="#ffffff">
+                    <input type="text" class="config-input" data-cfg="gift-alerts.style.textColor" value="#ffffff">
+                  </div>
+                </div>
+                <div class="config-field">
+                  <label>Cor de fundo padrão</label>
+                  <div class="color-picker-row">
+                    <input type="color" class="color-swatch" data-cfg-color="gift-alerts.style.backgroundColor" value="#0f172a">
+                    <input type="text" class="config-input" data-cfg="gift-alerts.style.backgroundColor" value="rgba(15, 23, 42, 0.85)">
+                  </div>
+                </div>
+                <div class="config-field">
+                  <label>Raio da borda (px)</label>
+                  <input type="number" class="config-input" data-cfg="gift-alerts.style.borderRadius" min="0" max="100" value="16">
+                </div>
+                <div class="config-field">
+                  <label>Testar alerta em tempo real</label>
+                  <button class="btn btn-secondary btn-sm" id="btn-trigger-test-alert" style="width: 100%;">
+                    Disparar Alerta de Teste (Rosa x3)
+                  </button>
+                </div>
+
+                <!-- Rules list -->
+                <div class="config-field config-field-full" style="margin-top: 0.5rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                    <label style="font-weight: 700; color: #fff;">Regras Específicas de Presentes</label>
+                    <button id="btn-add-gift-rule" class="btn btn-ghost btn-sm" style="color: var(--primary);">+ Adicionar Regra</button>
+                  </div>
+                  <div id="gift-rules-editor-container" class="gift-rules-container">
+                    <!-- Injected dynamically -->
+                  </div>
+                </div>
+              </div>
+              <div class="config-actions">
+                <button class="btn btn-primary btn-sm btn-save-widget-config" data-widget="gift-alerts">Salvar configurações de Alertas</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Widget 5: Likes Goal -->
+          <div class="widget-item-card" id="widget-card-likes-goal">
+            <div class="widget-item-main">
+              <div class="widget-item-header">
+                <div class="widget-item-icon">🎯</div>
+                <div class="widget-item-meta">
+                  <div class="widget-item-title-row">
+                    <h3>Meta de Curtidas</h3>
+                    <code class="widget-slug-badge">/likes-goal</code>
+                  </div>
+                  <p class="widget-item-desc">Barra de progresso com contador dinâmico e efeito de celebração ao atingir a meta.</p>
+                </div>
+              </div>
+
+              <div class="widget-item-url-box">
+                <code class="widget-url-text" id="url-widget-likes-goal">http://127.0.0.1:3000/overlay/token/likes-goal</code>
+              </div>
+
+              <div class="widget-item-actions">
+                <button class="btn btn-secondary btn-sm btn-copy-widget" data-widget="likes-goal">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  Copiar URL
+                </button>
+                <button class="btn btn-secondary btn-sm btn-preview-widget" data-widget="likes-goal" data-w="520" data-h="200">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  Abrir prévia
+                </button>
+                <button class="btn btn-ghost btn-sm btn-toggle-config" data-target="config-likes-goal">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  Configurar
+                </button>
+              </div>
+            </div>
+
+            <!-- Inline Config Box -->
+            <div class="widget-config-collapse" id="config-likes-goal">
+              <div class="config-grid">
+                <div class="config-field">
+                  <label>Título da meta</label>
+                  <input type="text" class="config-input" data-cfg="likes-goal.title" value="Meta de Curtidas">
+                </div>
+                <div class="config-field">
+                  <label>Meta alvo (curtidas)</label>
+                  <input type="number" class="config-input" data-cfg="likes-goal.targetLikes" min="1" step="100" value="1000">
+                </div>
+                <div class="config-field">
+                  <label>Curtidas iniciais</label>
+                  <input type="number" class="config-input" data-cfg="likes-goal.initialLikes" min="0" step="50" value="0">
+                </div>
+                <div class="config-field">
+                  <label>Tamanho da fonte</label>
+                  <input type="number" class="config-input" data-cfg="likes-goal.style.fontSize" min="12" max="48" value="16">
+                </div>
+                <div class="config-field">
+                  <label>Cor do texto</label>
+                  <div class="color-picker-row">
+                    <input type="color" class="color-swatch" data-cfg-color="likes-goal.style.textColor" value="#ffffff">
+                    <input type="text" class="config-input" data-cfg="likes-goal.style.textColor" value="#ffffff">
+                  </div>
+                </div>
+                <div class="config-field">
+                  <label>Cor de fundo</label>
+                  <div class="color-picker-row">
+                    <input type="color" class="color-swatch" data-cfg-color="likes-goal.style.backgroundColor" value="#0c101a">
+                    <input type="text" class="config-input" data-cfg="likes-goal.style.backgroundColor" value="rgba(12, 16, 26, 0.85)">
+                  </div>
+                </div>
+              </div>
+              <div class="config-actions">
+                <button class="btn btn-primary btn-sm btn-save-widget-config" data-widget="likes-goal">Salvar configurações da Meta</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Section 3: Metrics Row -->
+      <section class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon metric-icon-viewers">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <div class="metric-content">
+            <span class="metric-title">Espectadores</span>
+            <span id="metric-viewers" class="metric-value">—</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon metric-icon-likes">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+          </div>
+          <div class="metric-content">
+            <span class="metric-title" id="metric-likes-label">Total de Curtidas</span>
+            <span id="metric-likes" class="metric-value">0</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon metric-icon-gifts">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+              <polyline points="20 12 20 22 4 22 4 12"></polyline>
+              <rect x="2" y="7" width="20" height="5"></rect>
+              <line x1="12" y1="22" x2="12" y2="7"></line>
+              <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+              <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+            </svg>
+          </div>
+          <div class="metric-content">
+            <span class="metric-title">Presentes Recebidos</span>
+            <span id="metric-gifts" class="metric-value">0</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon metric-icon-chat">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
+          <div class="metric-content">
+            <span class="metric-title">Mensagens no Chat</span>
+            <span id="metric-chats" class="metric-value">0</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4: Simulation Section -->
+      <section class="card simulation-card" id="simulation-section">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="sim-badge-title">
+              <h2>Simulação</h2>
+              <span class="sim-tag">Modo de Teste</span>
+            </div>
+            <p class="card-desc">Gere eventos sintéticos para validar o fluxo de dados, visualização no painel e renderização no overlay do OBS.</p>
+          </div>
+        </div>
+
+        <div class="simulation-actions-grid">
+          <button id="btn-sim-chat" class="btn btn-sim">
+            <div class="btn-sim-icon">💬</div>
+            <div class="btn-sim-text">
+              <span class="btn-sim-title">Chat simulado</span>
+              <span class="btn-sim-desc">Envia mensagem com emoji [laughcry]</span>
+            </div>
+          </button>
+
+          <button id="btn-sim-like" class="btn btn-sim">
+            <div class="btn-sim-icon">❤️</div>
+            <div class="btn-sim-text">
+              <span class="btn-sim-title">Lote de curtidas</span>
+              <span class="btn-sim-desc">Dispara lote de +15 curtidas</span>
+            </div>
+          </button>
+
+          <button id="btn-sim-gift" class="btn btn-sim">
+            <div class="btn-sim-icon">🌹</div>
+            <div class="btn-sim-text">
+              <span class="btn-sim-title">Presente avulso</span>
+              <span class="btn-sim-desc">Envia 1 Rosa imediatamente</span>
+            </div>
+          </button>
+
+          <button id="btn-sim-streak" class="btn btn-sim btn-sim-highlight">
+            <div class="btn-sim-icon">🔥</div>
+            <div class="btn-sim-text">
+              <span class="btn-sim-title">Combo streak (1→2→3)</span>
+              <span class="btn-sim-desc">Dispara sequência e alerta final de 3</span>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <!-- Section 5: Live Event Feed -->
+      <section class="card feed-card">
+        <div class="card-header feed-header">
+          <div class="card-title-group">
+            <h2>Feed de Eventos em Tempo Real</h2>
+            <p class="card-desc">Mensagens de chat, curtidas, presentes e mudanças de status da sala.</p>
+          </div>
+          <div class="feed-controls">
+            <div class="feed-filters">
+              <button class="filter-chip active" data-filter="all">Todos</button>
+              <button class="filter-chip" data-filter="chat">Chat</button>
+              <button class="filter-chip" data-filter="like">Curtidas</button>
+              <button class="filter-chip" data-filter="gift">Presentes</button>
+            </div>
+            <button id="btn-clear-feed" class="btn btn-ghost" title="Limpar visualização do feed">
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              Limpar
+            </button>
+          </div>
+        </div>
+
+        <div id="event-feed" class="event-feed-list" aria-live="polite">
+          <div class="feed-empty-state" id="feed-empty-state">
+            <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="1.5" fill="none">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <p>Nenhum evento registrado ainda.</p>
+            <span>Conecte uma live ou use os botões da seção de Simulação para começar.</span>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- Toast Notification Container -->
@@ -384,6 +665,5 @@
   </div>
 
   <script src="/dashboard.js"></script>
-  <script src="/editor.js"></script>
 </body>
 </html>
