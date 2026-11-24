@@ -5,7 +5,7 @@ import { createHttpServer } from '../src/server/http.js';
 import { SessionManager } from '../src/server/session.js';
 
 describe('Headless and E2E Browser Verification', () => {
-  let server: Server;
+  let server: Server<any>;
   let sessionManager: SessionManager;
   let baseUrl: string;
   const overlayToken = 'e2e-headless-token-123456';

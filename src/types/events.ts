@@ -3,6 +3,8 @@
  * Schema Version: 1.0
  */
 
+import type { OverlayConfig } from './config.js';
+
 export type EventType =
   | 'chat.message'
   | 'engagement.like'
@@ -11,7 +13,8 @@ export type EventType =
   | 'live.status'
   | 'viewer.count'
   | 'engagement.follow'
-  | 'engagement.share';
+  | 'engagement.share'
+  | 'config.updated';
 
 export interface BaseEvent<T extends EventType = EventType, D = unknown> {
   schemaVersion: '1.0';
@@ -101,7 +104,8 @@ export type StreamerSpaceEvent =
   | BaseEvent<'live.status', LiveStatusData>
   | BaseEvent<'viewer.count', ViewerCountData>
   | BaseEvent<'engagement.follow', FollowData>
-  | BaseEvent<'engagement.share', ShareData>;
+  | BaseEvent<'engagement.share', ShareData>
+  | BaseEvent<'config.updated', OverlayConfig>;
 
 export interface ActiveGiftStreak {
   streakId: string;
@@ -130,6 +134,7 @@ export interface SessionSnapshot {
   connectedAt?: string;
   isSimulated: boolean;
   overlayToken: string;
+  config?: OverlayConfig;
 }
 
 /**

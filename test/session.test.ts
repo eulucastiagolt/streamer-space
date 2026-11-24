@@ -279,31 +279,33 @@ describe('SessionManager - Profile Switching & Isolation', () => {
     let source2Callbacks: LiveEventSourceCallbacks | null = null;
     let source2Disconnected = false;
 
+    let source1Connected = false;
     const mockSource1: LiveEventSource = {
-      isConnected: false,
+      get isConnected() { return source1Connected; },
       username: 'streamer_alpha',
       connect: async (_user, cb) => {
         source1Callbacks = cb;
-        mockSource1.isConnected = true;
+        source1Connected = true;
         cb.onStatusChange('connected', 'Conectado alpha', { roomId: 'room_alpha' });
       },
       disconnect: async () => {
         source1Disconnected = true;
-        mockSource1.isConnected = false;
+        source1Connected = false;
       },
     };
 
+    let source2Connected = false;
     const mockSource2: LiveEventSource = {
-      isConnected: false,
+      get isConnected() { return source2Connected; },
       username: 'streamer_beta',
       connect: async (_user, cb) => {
         source2Callbacks = cb;
-        mockSource2.isConnected = true;
+        source2Connected = true;
         cb.onStatusChange('connected', 'Conectado beta', { roomId: 'room_beta' });
       },
       disconnect: async () => {
         source2Disconnected = true;
-        mockSource2.isConnected = false;
+        source2Connected = false;
       },
     };
 

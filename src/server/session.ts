@@ -20,6 +20,8 @@ import type {
   StreamerSpaceEvent,
   ViewerCountData,
 } from '../types/events.js';
+import type { OverlayConfig } from '../types/config.js';
+import { ConfigStore, configStore } from './config-store.js';
 import { SimulatedEventSource } from '../ingestion/simulated-source.js';
 
 export function normalizeUsername(input: string): string {
@@ -44,6 +46,7 @@ export interface SessionManagerOptions {
   overlayToken?: string;
   streakTimeoutMs?: number;
   sourceFactory?: SourceFactory;
+  configStore?: ConfigStore;
 }
 
 export class SessionManager {
@@ -73,6 +76,7 @@ export class SessionManager {
   private _streakTimeoutMs: number = 5000;
   private _listeners: Set<(event: StreamerSpaceEvent) => void> = new Set();
   private _sourceFactory?: SourceFactory;
+  private _configStore: ConfigStore;
 
   constructor(options?: SessionManagerOptions) {
     this._overlayToken = options?.overlayToken || randomUUID().replace(/-/g, '');
@@ -80,6 +84,34 @@ export class SessionManager {
       this._streakTimeoutMs = options.streakTimeoutMs;
     }
     this._sourceFactory = options?.sourceFactory;
+    this._configStore = options?.configStore || configStore;
+  }
+
+  get configStore(): ConfigStore {
+    return this._configStore;
+  }
+
+  getConfig(): OverlayConfig {
+    return this._configStore.getConfig();
+  }
+
+  saveConfig(input: any) {
+    const result = this._configStore.saveConfig(input);
+    if (result.success && result.config) {
+      this.emitConfigUpdated(result.config);
+    }
+    return result;
+  }
+
+  resetConfig(): OverlayConfig {
+    const reset = this._configStore.resetConfig();
+    this.emitConfigUpdated(reset);
+    return reset;
+  }
+
+  emitConfigUpdated(config: OverlayConfig): void {
+    const event = this.createEvent('config.updated', config);
+    this.emitEvent(event);
   }
 
   get overlayToken(): string {
@@ -123,6 +155,7 @@ export class SessionManager {
       connectedAt: this._connectedAt,
       isSimulated: this._isSimulated,
       overlayToken: this._overlayToken,
+      config: this._configStore.getConfig(),
     };
   }
 
@@ -221,7 +254,7 @@ export class SessionManager {
     this._seenEventIds.clear();
 
     const statusEvent = this.createEvent('live.status', {
-      status: 'connecting',
+      status: 'connecting' as ConnectionStatus,
       targetUsername: normalized,
       message: 'Conectando à live...',
       isSimulated: this._isSimulated,
@@ -306,7 +339,7 @@ export class SessionManager {
     this._errorMessage = undefined;
 
     const event = this.createEvent('live.status', {
-      status: 'offline',
+      status: 'offline' as ConnectionStatus,
       targetUsername: this._targetUsername,
       message: 'Desconectado da live',
       isSimulated: this._isSimulated,

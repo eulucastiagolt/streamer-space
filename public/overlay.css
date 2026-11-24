@@ -1,6 +1,7 @@
 /* ==========================================================================
    Streamer Space - OBS Studio Browser Source Overlay CSS
    Transparent, responsive for 1920x1080 (horizontal) & 1080x1920 (vertical)
+   Supports dynamic layout positioning and custom styling from editor config
    ========================================================================== */
 
 :root {
@@ -39,17 +40,19 @@ html, body {
 }
 
 /* ==========================================================================
-   GIFT ALERTS
+   GIFT ALERTS ('gift-alerts')
    ========================================================================== */
 
 .gift-alerts-container {
   position: absolute;
-  z-index: 100;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   pointer-events: auto;
+  box-sizing: border-box;
 }
 
 .gift-alert-card {
@@ -65,7 +68,8 @@ html, body {
     0 0 24px var(--gold-glow);
   backdrop-filter: blur(8px);
   animation: giftAlertIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-  max-width: 480px;
+  max-width: 95%;
+  box-sizing: border-box;
 }
 
 .gift-alert-card.alert-exit {
@@ -117,6 +121,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .gift-sender-name {
@@ -127,13 +132,16 @@ html, body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 220px;
+  max-width: 280px;
 }
 
 .gift-action-text {
   font-size: 0.85rem;
   color: #e2e8f0;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .gift-action-text strong {
@@ -163,27 +171,31 @@ html, body {
 }
 
 /* ==========================================================================
-   STATS WIDGET (Like Counter)
+   STATS WIDGET CONTAINER & STAT PILLS (Likes & Viewers)
    ========================================================================== */
 
 .stats-widget {
   position: absolute;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  box-sizing: border-box;
 }
 
 .stat-pill {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(15, 20, 30, 0.82);
+  background: rgba(12, 16, 26, 0.82);
   border: 1.5px solid rgba(255, 255, 255, 0.15);
   border-radius: 999px;
   padding: 6px 14px;
   backdrop-filter: blur(8px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-sizing: border-box;
+  pointer-events: auto;
 }
 
 .like-stat-pill {
@@ -191,11 +203,17 @@ html, body {
   box-shadow: 0 4px 16px rgba(254, 44, 85, 0.2);
 }
 
+.viewer-stat-pill {
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.2);
+}
+
 .heart-icon-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
   transform-origin: center;
+  flex-shrink: 0;
 }
 
 .heart-pulsing {
@@ -207,6 +225,13 @@ html, body {
   35% { transform: scale(1.4); }
   65% { transform: scale(0.9); }
   100% { transform: scale(1); }
+}
+
+.viewer-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .stat-counter-group {
@@ -265,7 +290,7 @@ html, body {
 }
 
 /* ==========================================================================
-   CHAT MESSAGES WIDGET
+   CHAT MESSAGES WIDGET ('chat')
    ========================================================================== */
 
 .chat-widget {
@@ -274,6 +299,9 @@ html, body {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: auto;
 }
 
 .chat-fade-mask {
@@ -294,6 +322,7 @@ html, body {
   overflow-y: hidden;
   max-height: 100%;
   padding: 6px;
+  box-sizing: border-box;
 }
 
 .chat-bubble {
@@ -311,6 +340,7 @@ html, body {
   animation: chatBubbleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   width: fit-content;
   max-width: 95%;
+  box-sizing: border-box;
 }
 
 .chat-avatar {
@@ -323,6 +353,11 @@ html, body {
   flex-shrink: 0;
   display: inline-block;
   background: #1e293b;
+}
+
+/* Hide avatars when showAvatar is disabled */
+[data-hide-avatar="true"] .chat-avatar {
+  display: none !important;
 }
 
 @keyframes chatBubbleIn {
@@ -370,56 +405,221 @@ html, body {
 }
 
 /* ==========================================================================
-   RESPONSIVE SCENE LAYOUTS (1920x1080 Landscape vs 1080x1920 Portrait)
+   LIKES GOAL WIDGET ('likes-goal')
+   ========================================================================== */
+
+.likes-goal-widget {
+  position: absolute;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(12, 16, 26, 0.85);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 12px 18px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: auto;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.likes-goal-widget.goal-reached {
+  border-color: #22c55e;
+  box-shadow: 0 0 25px rgba(34, 197, 94, 0.45), 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.likes-goal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.likes-goal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.likes-goal-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.likes-goal-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.likes-goal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+  animation: goalBadgePulse 1.8s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+@keyframes goalBadgePulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.likes-goal-bar-wrapper {
+  width: 100%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.likes-goal-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #fe2c55, #f59e0b);
+  border-radius: 999px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 12px rgba(254, 44, 85, 0.6);
+}
+
+.likes-goal-progress-bar.progress-reached {
+  background: linear-gradient(90deg, #10b981, #22c55e);
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.8);
+}
+
+.likes-goal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.likes-goal-counts {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.likes-goal-current {
+  color: #ffffff;
+  font-weight: 800;
+  font-family: var(--font-combo);
+}
+
+.likes-goal-separator {
+  color: #64748b;
+}
+
+.likes-goal-target {
+  color: #94a3b8;
+  font-family: var(--font-combo);
+}
+
+.likes-goal-pct {
+  color: #fbbf24;
+  font-weight: 800;
+  font-family: var(--font-combo);
+}
+
+/* ==========================================================================
+   DEFAULT STATIC FALLBACK POSITIONS (if JS has not yet run)
    ========================================================================== */
 
 /* 1. HORIZONTAL / LANDSCAPE (Default: 1920x1080) */
 @media (min-aspect-ratio: 1/1) {
   .chat-widget {
-    left: 32px;
-    bottom: 32px;
-    width: 440px;
-    max-height: 55vh;
+    left: 40px;
+    top: 500px;
+    width: 480px;
+    height: 540px;
   }
 
-  .stats-widget {
-    top: 32px;
-    right: 32px;
+  .like-stat-pill {
+    left: 1540px;
+    top: 30px;
+    width: 340px;
+    height: 70px;
+  }
+
+  .viewer-stat-pill {
+    left: 1680px;
+    top: 110px;
+    width: 200px;
+    height: 50px;
   }
 
   .gift-alerts-container {
-    top: 36px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 480px;
+    top: 30px;
+    width: 960px;
+    height: 180px;
+  }
+
+  .likes-goal-widget {
+    left: 1400px;
+    top: 920px;
     width: 480px;
+    height: 120px;
   }
 }
 
 /* 2. VERTICAL / PORTRAIT (TikTok format: 1080x1920) */
 @media (max-aspect-ratio: 1/1) {
   .chat-widget {
-    left: 4%;
-    right: 4%;
-    bottom: 24px;
-    width: 92%;
-    max-height: 42vh;
+    left: 40px;
+    top: 1100px;
+    width: 720px;
+    height: 760px;
   }
 
-  .stats-widget {
-    bottom: 46vh;
-    right: 4%;
+  .like-stat-pill {
+    left: 700px;
+    top: 300px;
+    width: 340px;
+    height: 70px;
+  }
+
+  .viewer-stat-pill {
+    left: 840px;
+    top: 380px;
+    width: 200px;
+    height: 50px;
   }
 
   .gift-alerts-container {
-    top: 25vh;
-    left: 5%;
-    right: 5%;
-    width: 90%;
+    left: 60px;
+    top: 80px;
+    width: 960px;
+    height: 200px;
   }
 
-  .gift-alert-card {
-    max-width: 100%;
-    width: 100%;
-    padding: 14px 18px;
+  .likes-goal-widget {
+    left: 60px;
+    top: 940px;
+    width: 640px;
+    height: 130px;
   }
 }

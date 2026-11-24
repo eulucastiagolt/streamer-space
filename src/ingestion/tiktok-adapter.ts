@@ -101,12 +101,13 @@ export class TikTokLiveAdapter implements LiveEventSource {
 
     connection.on(WebcastEvent.CHAT, (e) => {
       if (!this._callbacks) return;
+      const user = e.user as any;
       const rawChat: RawChatMessage = {
         id: e.common?.msgId,
-        username: e.user?.uniqueId || e.user?.nickname || 'anônimo',
-        displayName: e.user?.nickname || e.user?.uniqueId,
+        username: user?.displayId || user?.uniqueId || user?.nickname || 'anônimo',
+        displayName: user?.nickname || user?.displayId || user?.uniqueId,
         comment: e.content || '',
-        avatarUrl: e.user?.avatarThumb?.urlList?.[0],
+        avatarUrl: user?.avatarThumb?.urlList?.[0],
         timestamp: e.common?.createTime ? Number(e.common.createTime) : Date.now(),
       };
       this._callbacks.onChat(rawChat);
@@ -114,9 +115,10 @@ export class TikTokLiveAdapter implements LiveEventSource {
 
     connection.on(WebcastEvent.LIKE, (e) => {
       if (!this._callbacks) return;
+      const user = e.user as any;
       const rawLike: RawLikeEvent = {
         id: e.common?.msgId,
-        username: e.user?.uniqueId || e.user?.nickname,
+        username: user?.displayId || user?.uniqueId || user?.nickname,
         count: e.count || 1,
         totalLikes: typeof e.total === 'number' && e.total > 0 ? e.total : undefined,
       };
@@ -125,6 +127,7 @@ export class TikTokLiveAdapter implements LiveEventSource {
 
     connection.on(WebcastEvent.GIFT, (e) => {
       if (!this._callbacks) return;
+      const user = e.user as any;
       const isFinished = isStreakEnd(e) || Boolean(e.repeatEnd);
       const rawGift: RawGiftEvent = {
         id: e.common?.msgId,
@@ -132,8 +135,8 @@ export class TikTokLiveAdapter implements LiveEventSource {
         giftName: e.gift?.name || 'Presente',
         count: 1,
         diamondCount: e.gift?.diamondCount !== undefined ? e.gift.diamondCount : 1,
-        username: e.user?.uniqueId || e.user?.nickname || 'anônimo',
-        displayName: e.user?.nickname || e.user?.uniqueId,
+        username: user?.displayId || user?.uniqueId || user?.nickname || 'anônimo',
+        displayName: user?.nickname || user?.displayId || user?.uniqueId,
         giftPictureUrl: e.gift?.image?.urlList?.[0],
         repeatEnd: isFinished,
         repeatCount: e.repeatCount || 1,
@@ -144,31 +147,35 @@ export class TikTokLiveAdapter implements LiveEventSource {
 
     connection.on(WebcastEvent.ROOM_USER, (e) => {
       if (!this._callbacks) return;
-      if (typeof e.viewerCount === 'number') {
-        this._callbacks.onViewerCount?.(e.viewerCount);
+      const viewerCount = typeof e.total === 'number' ? e.total : (e as any).viewerCount;
+      if (typeof viewerCount === 'number') {
+        this._callbacks.onViewerCount?.(viewerCount);
       }
     });
 
     connection.on(WebcastEvent.MEMBER, (e) => {
       if (!this._callbacks) return;
-      if (typeof e.memberCount === 'number' && e.memberCount > 0) {
-        this._callbacks.onViewerCount?.(e.memberCount);
+      const count = (e as any).memberCount;
+      if (typeof count === 'number' && count > 0) {
+        this._callbacks.onViewerCount?.(count);
       }
     });
 
     connection.on(WebcastEvent.FOLLOW, (e) => {
       if (!this._callbacks) return;
+      const user = e.user as any;
       this._callbacks.onFollow?.({
-        username: e.user?.uniqueId || 'seguidor',
-        displayName: e.user?.nickname || e.user?.uniqueId,
+        username: user?.displayId || user?.uniqueId || 'seguidor',
+        displayName: user?.nickname || user?.displayId || user?.uniqueId,
       });
     });
 
     connection.on(WebcastEvent.SHARE, (e) => {
       if (!this._callbacks) return;
+      const user = e.user as any;
       this._callbacks.onShare?.({
-        username: e.user?.uniqueId || 'compartilhador',
-        displayName: e.user?.nickname || e.user?.uniqueId,
+        username: user?.displayId || user?.uniqueId || 'compartilhador',
+        displayName: user?.nickname || user?.displayId || user?.uniqueId,
       });
     });
 

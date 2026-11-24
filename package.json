@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@tokioapp/connector": "^0.2.2"

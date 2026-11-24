@@ -772,6 +772,31 @@
     });
   });
 
+  // Tab Switching (Painel da Live vs Editor de overlay)
+  const tabLive = document.getElementById('tab-live');
+  const tabEditor = document.getElementById('tab-editor');
+  const viewLive = document.getElementById('view-live');
+  const viewEditor = document.getElementById('view-editor');
+
+  if (tabLive && tabEditor && viewLive && viewEditor) {
+    tabLive.addEventListener('click', () => {
+      tabLive.classList.add('active');
+      tabEditor.classList.remove('active');
+      viewLive.classList.add('active');
+      viewEditor.classList.remove('active');
+    });
+
+    tabEditor.addEventListener('click', () => {
+      tabEditor.classList.add('active');
+      tabLive.classList.remove('active');
+      viewEditor.classList.add('active');
+      viewLive.classList.remove('active');
+      if (typeof window.initOverlayEditor === 'function') {
+        window.initOverlayEditor();
+      }
+    });
+  }
+
   // Initialization
   updateObsUrlDisplay();
   fetchStatus();

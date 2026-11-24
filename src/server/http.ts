@@ -129,7 +129,7 @@ export interface HttpServerOptions {
   publicDir?: string;
 }
 
-export function createHttpServer(options: HttpServerOptions): Server {
+export function createHttpServer(options: HttpServerOptions): Server<any> {
   const port = options.port !== undefined ? options.port : 3000;
   const hostname = options.hostname || '127.0.0.1';
   const sessionManager = options.sessionManager;
@@ -244,6 +244,60 @@ export function createHttpServer(options: HttpServerOptions): Server {
           return Response.json(
             { ok: false, error: err?.message || 'Erro ao processar evento simulado' },
             { status: 400 }
+          );
+        }
+      }
+
+      // GET /api/config -> Return current overlay configuration
+      if (method === 'GET' && pathname === '/api/config') {
+        return Response.json(sessionManager.getConfig(), {
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+          },
+        });
+      }
+
+      // POST /api/config -> Save and publish updated overlay configuration
+      if (method === 'POST' && pathname === '/api/config') {
+        const adminCheck = validateAdminRequest(req);
+        if (adminCheck) return adminCheck;
+
+        try {
+          const body = (await req.json()) as any;
+          const result = sessionManager.saveConfig(body);
+          if (!result.success) {
+            return Response.json(
+              { ok: false, error: result.error || 'Configuração inválida' },
+              { status: 400 }
+            );
+          }
+          return Response.json({
+            ok: true,
+            config: result.config,
+          });
+        } catch (err: any) {
+          return Response.json(
+            { ok: false, error: err?.message || 'Erro ao processar configuração' },
+            { status: 400 }
+          );
+        }
+      }
+
+      // POST /api/config/reset -> Reset configuration to defaults
+      if (method === 'POST' && pathname === '/api/config/reset') {
+        const adminCheck = validateAdminRequest(req);
+        if (adminCheck) return adminCheck;
+
+        try {
+          const resetConfig = sessionManager.resetConfig();
+          return Response.json({
+            ok: true,
+            config: resetConfig,
+          });
+        } catch (err: any) {
+          return Response.json(
+            { ok: false, error: err?.message || 'Erro ao redefinir configurações' },
+            { status: 500 }
           );
         }
       }

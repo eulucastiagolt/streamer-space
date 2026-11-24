@@ -5,7 +5,7 @@ import { SessionManager } from '../src/server/session.js';
 import type { LiveEventSource, LiveEventSourceCallbacks } from '../src/types/events.js';
 
 describe('HTTP Server and Routes', () => {
-  let server: Server;
+  let server: Server<any>;
   let sessionManager: SessionManager;
   let baseUrl: string;
   const testOverlayToken = 'test-token-abcdef1234567890';
@@ -196,7 +196,7 @@ describe('HTTP Server and Routes', () => {
 });
 
 describe('SSE Streaming and Overlay Reconnect / Refresh Snapshot', () => {
-  let server: Server;
+  let server: Server<any>;
   let sessionManager: SessionManager;
   let baseUrl: string;
   const overlayToken = 'obs-sse-token-test-12345';
