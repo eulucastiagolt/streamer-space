@@ -771,6 +771,14 @@
     if (activeWidget !== 'all') {
       document.body.setAttribute('data-widget', activeWidget);
 
+      if (overlayApp) {
+        overlayApp.style.display = 'flex';
+        overlayApp.style.alignItems = 'center';
+        overlayApp.style.justifyContent = 'center';
+        overlayApp.style.padding = '12px';
+        overlayApp.style.boxSizing = 'border-box';
+      }
+
       // Hide all other widgets
       for (const [id, el] of Object.entries(widgetElements)) {
         if (!el) continue;
@@ -779,42 +787,54 @@
         }
       }
 
-      // Hide stats container wrapper if neither likes nor viewers is active
+      // Center stats container wrapper if likes or viewers is active
       if (statsWidget) {
         if (activeWidget === 'likes' || activeWidget === 'viewers') {
-          statsWidget.style.display = 'block';
-          statsWidget.style.position = 'absolute';
-          statsWidget.style.inset = '0';
+          statsWidget.style.display = 'flex';
+          statsWidget.style.alignItems = 'center';
+          statsWidget.style.justifyContent = 'center';
+          statsWidget.style.position = 'relative';
+          statsWidget.style.inset = 'auto';
+          statsWidget.style.width = '100%';
+          statsWidget.style.height = '100%';
           statsWidget.style.pointerEvents = 'none';
         } else {
           statsWidget.style.display = 'none';
         }
       }
 
-      // Show and style ONLY the active widget
+      // Show and style ONLY the active widget, centered horizontally and vertically
       const activeEl = widgetElements[activeWidget];
       const activeConf = layout.widgets[activeWidget] || {};
       if (activeEl) {
         activeEl.style.display = 'flex';
-        activeEl.style.position = 'absolute';
-        activeEl.style.top = '12px';
-        activeEl.style.left = '12px';
+        activeEl.style.position = 'relative';
+        activeEl.style.top = 'auto';
+        activeEl.style.left = 'auto';
         activeEl.style.right = 'auto';
         activeEl.style.bottom = 'auto';
+        activeEl.style.margin = '0 auto';
         activeEl.style.zIndex = '50';
         activeEl.style.boxSizing = 'border-box';
 
-        if (activeWidget === 'chat' || activeWidget === 'gift-alerts' || activeWidget === 'likes-goal') {
-          activeEl.style.width = 'calc(100% - 24px)';
-          activeEl.style.maxWidth = 'calc(100% - 24px)';
+        if (activeWidget === 'chat') {
+          activeEl.style.width = '100%';
+          activeEl.style.maxWidth = '560px';
+          activeEl.style.height = '100%';
+        } else if (activeWidget === 'gift-alerts') {
+          activeEl.style.width = '100%';
+          activeEl.style.maxWidth = '680px';
+          activeEl.style.height = 'auto';
+          activeEl.style.alignItems = 'center';
+          activeEl.style.justifyContent = 'center';
+        } else if (activeWidget === 'likes-goal') {
+          activeEl.style.width = '100%';
+          activeEl.style.maxWidth = '540px';
+          activeEl.style.height = 'auto';
         } else {
           activeEl.style.width = 'fit-content';
-          activeEl.style.maxWidth = 'calc(100% - 24px)';
+          activeEl.style.maxWidth = '100%';
           activeEl.style.height = 'auto';
-        }
-
-        if (activeWidget === 'chat') {
-          activeEl.style.height = 'calc(100% - 24px)';
         }
 
         // Apply styles for active widget
