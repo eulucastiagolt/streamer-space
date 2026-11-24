@@ -220,7 +220,10 @@
   // Open Preview in new tab
   function openPreview() {
     const url = getObsOverlayUrl();
-    window.open(url, '_blank', 'width=1280,height=720,menubar=no,toolbar=no,location=no');
+    const win = window.open(url, '_blank');
+    if (!win) {
+      showToast('Permita pop-ups para abrir a prévia ou copie a URL.', 'error');
+    }
   }
 
   // Update Metrics UI
@@ -1168,10 +1171,11 @@
   document.querySelectorAll('.btn-preview-widget').forEach(btn => {
     btn.addEventListener('click', () => {
       const widget = btn.dataset.widget;
-      const w = btn.dataset.w || 480;
-      const h = btn.dataset.h || 400;
       const url = `${window.location.origin}/overlay/${overlayToken}/${widget}`;
-      window.open(url, '_blank', `width=${w},height=${h},menubar=no,toolbar=no`);
+      const win = window.open(url, '_blank');
+      if (!win) {
+        showToast('Permita pop-ups para abrir a prévia ou copie a URL.', 'error');
+      }
     });
   });
 
