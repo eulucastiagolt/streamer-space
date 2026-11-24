@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Streamer Space — Overlay OBS</title>
+  <link rel="stylesheet" href="/overlay.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+</head>
+<body class="overlay-body">
+  <div id="overlay-app" class="overlay-container">
+    
+    <!-- Top / Center Gift Alerts Display -->
+    <div id="gift-alerts-container" class="gift-alerts-container" aria-live="polite">
+      <!-- Gift alert banners will be injected here dynamically -->
+    </div>
+
+    <!-- Stats Widget (Likes & Viewers Counter) -->
+    <div id="stats-widget" class="stats-widget">
+      <!-- Floating Hearts Spawn Container -->
+      <div id="floating-hearts-container" class="floating-hearts-container"></div>
+
+      <div class="stat-pill like-stat-pill" id="like-stat-box">
+        <div class="heart-icon-wrapper" id="heart-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="#fe2c55" stroke="#fe2c55" stroke-width="1.5">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </div>
+        <div class="stat-counter-group">
+          <span id="overlay-like-count" class="counter-number">0</span>
+          <span class="counter-label" id="overlay-like-label">curtidas</span>
+        </div>
+      </div>
+
+      <div class="stat-pill viewer-stat-pill" id="viewer-stat-box" style="display: none;">
+        <div class="viewer-icon-wrapper">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#38bdf8" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </div>
+        <span id="overlay-viewer-count" class="counter-number">0</span>
+      </div>
+    </div>
+
+    <!-- Chat Messages Widget -->
+    <div id="chat-widget" class="chat-widget">
+      <div class="chat-fade-mask"></div>
+      <div id="chat-messages" class="chat-messages-list">
+        <!-- Chat bubbles will be appended here dynamically with textContent sanitization -->
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/overlay.js"></script>
+</body>
+</html>

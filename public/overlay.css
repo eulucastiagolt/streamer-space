@@ -1,0 +1,413 @@
+/* ==========================================================================
+   Streamer Space - OBS Studio Browser Source Overlay CSS
+   Transparent, responsive for 1920x1080 (horizontal) & 1080x1920 (vertical)
+   ========================================================================== */
+
+:root {
+  --tiktok-magenta: #fe2c55;
+  --tiktok-cyan: #00f2fe;
+  --gold: #f59e0b;
+  --gold-glow: rgba(245, 158, 11, 0.5);
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-combo: 'Nunito', 'Inter', sans-serif;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: transparent !important;
+  background: transparent !important;
+  overflow: hidden;
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+.overlay-body {
+  background: transparent !important;
+}
+
+.overlay-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+  overflow: hidden;
+  pointer-events: none; /* Let clicks pass through in OBS */
+}
+
+/* ==========================================================================
+   GIFT ALERTS
+   ========================================================================== */
+
+.gift-alerts-container {
+  position: absolute;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.gift-alert-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(20, 20, 30, 0.92) 0%, rgba(35, 25, 45, 0.95) 100%);
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  padding: 12px 20px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 24px var(--gold-glow);
+  backdrop-filter: blur(8px);
+  animation: giftAlertIn 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  max-width: 480px;
+}
+
+.gift-alert-card.alert-exit {
+  animation: giftAlertOut 0.4s ease-in forwards;
+}
+
+@keyframes giftAlertIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes giftAlertOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.9);
+  }
+}
+
+.gift-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+  animation: giftWiggle 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes giftWiggle {
+  0% { transform: rotate(-6deg) scale(1); }
+  100% { transform: rotate(6deg) scale(1.08); }
+}
+
+.gift-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gift-sender-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.gift-action-text {
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.gift-action-text strong {
+  color: #fbbf24;
+}
+
+.gift-multiplier-badge {
+  font-family: var(--font-combo);
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #fff;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  padding: 4px 14px;
+  border-radius: 999px;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
+  border: 2px solid #ffffff;
+  animation: comboPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  flex-shrink: 0;
+  margin-left: auto;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes comboPop {
+  0% { transform: scale(0.5) rotate(-15deg); }
+  50% { transform: scale(1.3) rotate(5deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* ==========================================================================
+   STATS WIDGET (Like Counter)
+   ========================================================================== */
+
+.stats-widget {
+  position: absolute;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 20, 30, 0.82);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 6px 14px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.like-stat-pill {
+  border-color: rgba(254, 44, 85, 0.4);
+  box-shadow: 0 4px 16px rgba(254, 44, 85, 0.2);
+}
+
+.heart-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center;
+}
+
+.heart-pulsing {
+  animation: heartPulse 0.4s ease-out;
+}
+
+@keyframes heartPulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.4); }
+  65% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.stat-counter-group {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.counter-number {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #ffffff;
+  font-family: var(--font-combo);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.counter-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+}
+
+/* Floating Hearts Spawn Container */
+.floating-hearts-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.floating-heart {
+  position: absolute;
+  font-size: 20px;
+  animation: floatHeartUp 2s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+@keyframes floatHeartUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(0.6) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-60px) scale(1.15) rotate(15deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-130px) scale(0.9) rotate(-15deg);
+  }
+}
+
+/* ==========================================================================
+   CHAT MESSAGES WIDGET
+   ========================================================================== */
+
+.chat-widget {
+  position: absolute;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.chat-fade-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 35px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.chat-messages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: hidden;
+  max-height: 100%;
+  padding: 6px;
+}
+
+.chat-bubble {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  background: rgba(12, 16, 26, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 6px 12px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  animation: chatBubbleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  width: fit-content;
+  max-width: 95%;
+}
+
+@keyframes chatBubbleIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chat-author {
+  font-weight: 700;
+  margin-right: 6px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.chat-author-color-0 { color: #60a5fa; }
+.chat-author-color-1 { color: #f472b6; }
+.chat-author-color-2 { color: #34d399; }
+.chat-author-color-3 { color: #fbbf24; }
+.chat-author-color-4 { color: #a78bfa; }
+.chat-author-color-5 { color: #38bdf8; }
+
+.chat-badge {
+  display: inline-block;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.chat-text {
+  color: #ffffff;
+  font-weight: 500;
+  word-break: break-word;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* ==========================================================================
+   RESPONSIVE SCENE LAYOUTS (1920x1080 Landscape vs 1080x1920 Portrait)
+   ========================================================================== */
+
+/* 1. HORIZONTAL / LANDSCAPE (Default: 1920x1080) */
+@media (min-aspect-ratio: 1/1) {
+  .chat-widget {
+    left: 32px;
+    bottom: 32px;
+    width: 440px;
+    max-height: 55vh;
+  }
+
+  .stats-widget {
+    top: 32px;
+    right: 32px;
+  }
+
+  .gift-alerts-container {
+    top: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 480px;
+  }
+}
+
+/* 2. VERTICAL / PORTRAIT (TikTok format: 1080x1920) */
+@media (max-aspect-ratio: 1/1) {
+  .chat-widget {
+    left: 4%;
+    right: 4%;
+    bottom: 24px;
+    width: 92%;
+    max-height: 42vh;
+  }
+
+  .stats-widget {
+    bottom: 46vh;
+    right: 4%;
+  }
+
+  .gift-alerts-container {
+    top: 25vh;
+    left: 5%;
+    right: 5%;
+    width: 90%;
+  }
+
+  .gift-alert-card {
+    max-width: 100%;
+    width: 100%;
+    padding: 14px 18px;
+  }
+}

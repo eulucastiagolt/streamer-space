@@ -1,0 +1,16 @@
+{
+  "name": "streamer-space",
+  "version": "0.1.0",
+  "description": "Local Linux app that captures public TikTok LIVE events and displays them in OBS",
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@tokioapp/connector": "^0.2.2"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
