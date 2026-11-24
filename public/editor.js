@@ -978,12 +978,18 @@
     const hInput = document.getElementById('insp-h');
     const zInput = document.getElementById('insp-z');
 
-    function handleNumericChange() {
-      const x = Math.max(0, Math.min(parseInt(xInput.value) || 0, canvasW - 40));
-      const y = Math.max(0, Math.min(parseInt(yInput.value) || 0, canvasH - 20));
-      const w = Math.max(40, Math.min(parseInt(wInput.value) || 40, canvasW - x));
-      const h = Math.max(20, Math.min(parseInt(hInput.value) || 20, canvasH - y));
-      const z = Math.max(1, Math.min(parseInt(zInput.value) || 1, 999));
+    function applyNumericValues(shouldClampInputs) {
+      const parsedX = parseInt(xInput.value, 10);
+      const parsedY = parseInt(yInput.value, 10);
+      const parsedW = parseInt(wInput.value, 10);
+      const parsedH = parseInt(hInput.value, 10);
+      const parsedZ = parseInt(zInput.value, 10);
+
+      const x = Math.max(0, Math.min(Number.isNaN(parsedX) ? 0 : parsedX, canvasW - 40));
+      const y = Math.max(0, Math.min(Number.isNaN(parsedY) ? 0 : parsedY, canvasH - 20));
+      const w = Math.max(40, Math.min(Number.isNaN(parsedW) ? 40 : parsedW, canvasW - x));
+      const h = Math.max(20, Math.min(Number.isNaN(parsedH) ? 20 : parsedH, canvasH - y));
+      const z = Math.max(1, Math.min(Number.isNaN(parsedZ) ? 1 : parsedZ, 999));
 
       widget.position.x = x;
       widget.position.y = y;
@@ -991,11 +997,13 @@
       widget.position.height = h;
       widget.position.zIndex = z;
 
-      xInput.value = x;
-      yInput.value = y;
-      wInput.value = w;
-      hInput.value = h;
-      zInput.value = z;
+      if (shouldClampInputs) {
+        xInput.value = x;
+        yInput.value = y;
+        wInput.value = w;
+        hInput.value = h;
+        zInput.value = z;
+      }
 
       renderCanvas();
       renderLayersList();
@@ -1003,7 +1011,10 @@
     }
 
     [xInput, yInput, wInput, hInput, zInput].forEach(inp => {
-      if (inp) inp.addEventListener('change', handleNumericChange);
+      if (inp) {
+        inp.addEventListener('input', () => applyNumericValues(false));
+        inp.addEventListener('change', () => applyNumericValues(true));
+      }
     });
 
     // Font Size
@@ -1029,7 +1040,7 @@
         renderCanvas();
         updateEditorStatus();
       });
-      textColorHex.addEventListener('change', () => {
+      textColorHex.addEventListener('input', () => {
         widget.style.textColor = textColorHex.value;
         renderCanvas();
         updateEditorStatus();
@@ -1046,7 +1057,7 @@
         renderCanvas();
         updateEditorStatus();
       });
-      bgColorHex.addEventListener('change', () => {
+      bgColorHex.addEventListener('input', () => {
         widget.style.backgroundColor = bgColorHex.value;
         renderCanvas();
         updateEditorStatus();
@@ -1084,14 +1095,18 @@
       const limitInp = document.getElementById('insp-chat-limit');
       const avatarCheck = document.getElementById('insp-chat-avatar');
       if (limitInp) {
-        limitInp.addEventListener('change', () => {
-          widget.messageLimit = Math.max(5, Math.min(parseInt(limitInp.value) || 25, 100));
-          updateEditorStatus();
+        limitInp.addEventListener('input', () => {
+          const val = parseInt(limitInp.value, 10);
+          if (!Number.isNaN(val)) {
+            widget.messageLimit = Math.max(5, Math.min(val, 100));
+            updateEditorStatus();
+          }
         });
       }
       if (avatarCheck) {
         avatarCheck.addEventListener('change', () => {
           widget.showAvatar = avatarCheck.checked;
+          renderCanvas();
           updateEditorStatus();
         });
       }
@@ -1101,10 +1116,12 @@
     if (widget.id === 'gift-alerts') {
       const durInp = document.getElementById('insp-alert-duration');
       if (durInp) {
-        durInp.addEventListener('change', () => {
-          const sec = parseFloat(durInp.value) || 4;
-          widget.defaultDurationMs = Math.round(sec * 1000);
-          updateEditorStatus();
+        durInp.addEventListener('input', () => {
+          const sec = parseFloat(durInp.value);
+          if (!Number.isNaN(sec) && sec > 0) {
+            widget.defaultDurationMs = Math.round(sec * 1000);
+            updateEditorStatus();
+          }
         });
       }
 
@@ -1141,17 +1158,23 @@
         });
       }
       if (targetInp) {
-        targetInp.addEventListener('change', () => {
-          widget.targetLikes = Math.max(1, parseInt(targetInp.value) || 1000);
-          renderCanvas();
-          updateEditorStatus();
+        targetInp.addEventListener('input', () => {
+          const val = parseInt(targetInp.value, 10);
+          if (!Number.isNaN(val) && val >= 1) {
+            widget.targetLikes = val;
+            renderCanvas();
+            updateEditorStatus();
+          }
         });
       }
       if (initInp) {
-        initInp.addEventListener('change', () => {
-          widget.initialLikes = Math.max(0, parseInt(initInp.value) || 0);
-          renderCanvas();
-          updateEditorStatus();
+        initInp.addEventListener('input', () => {
+          const val = parseInt(initInp.value, 10);
+          if (!Number.isNaN(val) && val >= 0) {
+            widget.initialLikes = val;
+            renderCanvas();
+            updateEditorStatus();
+          }
         });
       }
     }
