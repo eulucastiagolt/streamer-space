@@ -160,7 +160,10 @@ export function createHttpServer(options: HttpServerOptions): Server<any> {
         const file = Bun.file(join(publicDir, 'dashboard.html'));
         if (await file.exists()) {
           return new Response(file, {
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            headers: {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-cache, must-revalidate',
+            },
           });
         }
         return new Response('Streamer Space Dashboard', { status: 200 });
@@ -348,7 +351,10 @@ export function createHttpServer(options: HttpServerOptions): Server<any> {
           else if (ext === 'ico') contentType = 'image/x-icon';
 
           return new Response(file, {
-            headers: { 'Content-Type': contentType },
+            headers: {
+              'Content-Type': contentType,
+              'Cache-Control': 'no-cache, must-revalidate',
+            },
           });
         }
       }

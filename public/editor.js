@@ -1227,10 +1227,22 @@
       const durInp = item.querySelector('.rule-dur');
       const colorPick = item.querySelector('.rule-bannercolor');
 
-      nameInp.addEventListener('change', () => { rule.name = nameInp.value; updateEditorStatus(); });
-      giftIdInp.addEventListener('change', () => { rule.giftId = giftIdInp.value.trim() || undefined; updateEditorStatus(); });
-      minCountInp.addEventListener('change', () => { rule.minCount = parseInt(minCountInp.value) || 1; updateEditorStatus(); });
-      durInp.addEventListener('change', () => { rule.durationMs = parseInt(durInp.value) || 4000; updateEditorStatus(); });
+      nameInp.addEventListener('input', () => { rule.name = nameInp.value; updateEditorStatus(); });
+      giftIdInp.addEventListener('input', () => { rule.giftId = giftIdInp.value.trim() || undefined; updateEditorStatus(); });
+      minCountInp.addEventListener('input', () => {
+        const val = parseInt(minCountInp.value, 10);
+        if (!Number.isNaN(val)) {
+          rule.minCount = Math.max(1, val);
+          updateEditorStatus();
+        }
+      });
+      durInp.addEventListener('input', () => {
+        const val = parseInt(durInp.value, 10);
+        if (!Number.isNaN(val) && val >= 500) {
+          rule.durationMs = val;
+          updateEditorStatus();
+        }
+      });
       colorPick.addEventListener('input', () => { rule.bannerColor = colorPick.value; updateEditorStatus(); });
 
       delBtn.addEventListener('click', () => {
