@@ -222,22 +222,41 @@
     metricChats.textContent = Number(metrics.chats || 0).toLocaleString('pt-BR');
   }
 
-  // Add Item to Live Feed (Safely sanitize with textContent)
-  function addFeedItem(type, meta, author, contentText, avatarUrl) {
+  // Add or update Item in Live Feed (Safely sanitize with textContent)
+  function addFeedItem(type, meta, author, contentText, avatarUrl, streakId) {
     if (feedEmptyState) {
       feedEmptyState.style.display = 'none';
+    }
+
+    // If an item with this streakId already exists, update it in place!
+    if (streakId) {
+      const existing = eventFeed.querySelector(`[data-streak-id="${streakId}"]`);
+      if (existing) {
+        const badgeEl = existing.querySelector('.feed-item-badge');
+        const textEl = existing.querySelector('.feed-item-text');
+        const timeEl = existing.querySelector('.feed-item-time');
+        if (badgeEl && meta) badgeEl.textContent = meta;
+        if (textEl && contentText) textEl.textContent = contentText;
+        if (timeEl) timeEl.textContent = new Date().toLocaleTimeString('pt-BR');
+        // Bring to top of feed
+        eventFeed.insertBefore(existing, eventFeed.firstChild);
+        return;
+      }
     }
 
     const item = document.createElement('div');
     item.className = `feed-item feed-item-${type}`;
     item.dataset.type = type;
+    if (streakId) {
+      item.dataset.streakId = streakId;
+    }
 
     // Filter check
     if (activeFilter !== 'all' && activeFilter !== type) {
       item.style.display = 'none';
     }
 
-    // Icon / Avatar
+    // Icon / Avatar / Gift Icon
     const iconEl = document.createElement('div');
     iconEl.className = 'feed-item-icon';
     if (avatarUrl && type === 'chat') {
@@ -249,6 +268,17 @@
       img.onerror = function () {
         img.remove();
         iconEl.textContent = '💬';
+      };
+      iconEl.appendChild(img);
+    } else if (avatarUrl && type === 'gift') {
+      const img = document.createElement('img');
+      img.className = 'feed-avatar feed-gift-icon';
+      img.src = avatarUrl;
+      img.alt = '';
+      img.referrerPolicy = 'no-referrer';
+      img.onerror = function () {
+        img.remove();
+        iconEl.textContent = '🎁';
       };
       iconEl.appendChild(img);
     } else if (type === 'chat') iconEl.textContent = '💬';
@@ -368,7 +398,17 @@
         break;
 
       case 'gift.update':
-        // Progress of streak
+        const updateCount = data.count || 1;
+        const updateSender = data.displayName || data.username || 'Espectador';
+        const updateStreakLabel = data.streakId ? `Combo x${updateCount}` : `x${updateCount}`;
+        addFeedItem(
+          'gift',
+          updateStreakLabel,
+          updateSender,
+          `Enviando ${updateCount}x ${data.giftName || 'Presente'}... 🎁`,
+          data.giftPictureUrl,
+          data.streakId
+        );
         break;
 
       case 'gift.completed':
@@ -381,7 +421,9 @@
           'gift',
           streakLabel,
           giftSender,
-          `Enviou ${giftCount}x ${data.giftName || 'Presente'}! 🎁`
+          `Enviou ${giftCount}x ${data.giftName || 'Presente'}! 🎁`,
+          data.giftPictureUrl,
+          data.streakId
         );
         break;
 
@@ -501,6 +543,11 @@
     // Render recent chats from snapshot
     if (Array.isArray(snapshot.recentChat) && snapshot.recentChat.length > 0) {
       snapshot.recentChat.forEach(chatEvent => handleEvent(chatEvent));
+    }
+
+    // Render recent gifts from snapshot
+    if (Array.isArray(snapshot.recentGifts) && snapshot.recentGifts.length > 0) {
+      snapshot.recentGifts.forEach(giftEvent => handleEvent(giftEvent));
     }
 
     // Set status badge

@@ -738,6 +738,15 @@ body {
   background: var(--bg-card);
 }
 
+.feed-gift-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  object-fit: contain;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
 .feed-item-content {
   flex: 1;
   min-width: 0;

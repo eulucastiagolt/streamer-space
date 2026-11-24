@@ -6,6 +6,7 @@ import {
   RoomNotFoundError,
   InvalidUsernameError,
   RateLimitError,
+  isStreakEnd,
 } from '@tokioapp/connector';
 import type {
   LiveEventSource,
@@ -124,6 +125,7 @@ export class TikTokLiveAdapter implements LiveEventSource {
 
     connection.on(WebcastEvent.GIFT, (e) => {
       if (!this._callbacks) return;
+      const isFinished = isStreakEnd(e) || Boolean(e.repeatEnd);
       const rawGift: RawGiftEvent = {
         id: e.common?.msgId,
         giftId: e.giftId,
@@ -133,7 +135,7 @@ export class TikTokLiveAdapter implements LiveEventSource {
         username: e.user?.uniqueId || e.user?.nickname || 'anônimo',
         displayName: e.user?.nickname || e.user?.uniqueId,
         giftPictureUrl: e.gift?.image?.urlList?.[0],
-        repeatEnd: Boolean(e.repeatEnd),
+        repeatEnd: isFinished,
         repeatCount: e.repeatCount || 1,
         groupId: e.groupId || e.common?.msgId,
       };

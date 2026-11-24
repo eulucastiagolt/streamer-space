@@ -558,6 +558,8 @@ export class SessionManager {
         repeatEnd: true,
         diamondCount: params.diamondCount !== undefined ? params.diamondCount : 1,
         username: params.username || 'usuario_demo',
+        displayName: 'Pedro Doador',
+        giftPictureUrl: 'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/5b35f795db2f7f98fb7adfbde71b67f1~tplv-obj.png',
       });
     } else if (type === 'streak') {
       const maxCount = params.count || params.maxCount || 3;
@@ -578,7 +580,8 @@ export class SessionManager {
           repeatEnd: isEnd,
           diamondCount: unitDiamonds,
           username,
-          displayName: 'Usuário Combo',
+          displayName: 'Super Fã (Combo)',
+          giftPictureUrl: 'https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/5b35f795db2f7f98fb7adfbde71b67f1~tplv-obj.png',
           groupId: streakId,
         });
 
