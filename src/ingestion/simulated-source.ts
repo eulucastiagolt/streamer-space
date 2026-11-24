@@ -72,6 +72,13 @@ export class SimulatedEventSource implements LiveEventSource {
       'Sensacional essa transmissão!',
     ];
     const sampleUsers = ['pedro_gamer', 'mari_stream', 'carlos_silva', 'ana_paula', 'lucas_dev'];
+    const sampleAvatars: Record<string, string> = {
+      pedro_gamer: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=faces',
+      mari_stream: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces',
+      carlos_silva: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=100&h=100&fit=crop&crop=faces',
+      ana_paula: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=faces',
+      lucas_dev: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
+    };
     const randomUser = sampleUsers[Math.floor(Math.random() * sampleUsers.length)];
     const randomComment = sampleComments[Math.floor(Math.random() * sampleComments.length)];
 
@@ -80,7 +87,7 @@ export class SimulatedEventSource implements LiveEventSource {
       username: chat?.username || randomUser,
       displayName: chat?.displayName || (chat?.username || randomUser),
       comment: chat?.comment || randomComment,
-      avatarUrl: chat?.avatarUrl,
+      avatarUrl: chat?.avatarUrl !== undefined ? chat.avatarUrl : sampleAvatars[randomUser],
       timestamp: chat?.timestamp || Date.now(),
     });
   }

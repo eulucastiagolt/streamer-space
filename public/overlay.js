@@ -63,6 +63,19 @@
       bubble.style.animation = 'none'; // No entrance animation for initial snapshot
     }
 
+    // Avatar image if available
+    if (chatData.profilePictureUrl) {
+      const avatarImg = document.createElement('img');
+      avatarImg.className = 'chat-avatar';
+      avatarImg.src = chatData.profilePictureUrl;
+      avatarImg.alt = '';
+      avatarImg.referrerPolicy = 'no-referrer';
+      avatarImg.onerror = function () {
+        avatarImg.remove();
+      };
+      bubble.appendChild(avatarImg);
+    }
+
     // Badge if provided
     if (chatData.badge) {
       const badgeSpan = document.createElement('span');

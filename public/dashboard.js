@@ -223,7 +223,7 @@
   }
 
   // Add Item to Live Feed (Safely sanitize with textContent)
-  function addFeedItem(type, meta, author, contentText) {
+  function addFeedItem(type, meta, author, contentText, avatarUrl) {
     if (feedEmptyState) {
       feedEmptyState.style.display = 'none';
     }
@@ -237,10 +237,21 @@
       item.style.display = 'none';
     }
 
-    // Icon
+    // Icon / Avatar
     const iconEl = document.createElement('div');
     iconEl.className = 'feed-item-icon';
-    if (type === 'chat') iconEl.textContent = '💬';
+    if (avatarUrl && type === 'chat') {
+      const img = document.createElement('img');
+      img.className = 'feed-avatar';
+      img.src = avatarUrl;
+      img.alt = '';
+      img.referrerPolicy = 'no-referrer';
+      img.onerror = function () {
+        img.remove();
+        iconEl.textContent = '💬';
+      };
+      iconEl.appendChild(img);
+    } else if (type === 'chat') iconEl.textContent = '💬';
     else if (type === 'like') iconEl.textContent = '❤️';
     else if (type === 'gift') iconEl.textContent = '🎁';
     else iconEl.textContent = 'ℹ️';
@@ -331,7 +342,8 @@
           'chat',
           data.badge || 'Chat',
           data.displayName || data.username || 'Anônimo',
-          data.comment || ''
+          data.comment || '',
+          data.profilePictureUrl
         );
         break;
 

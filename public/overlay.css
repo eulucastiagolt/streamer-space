@@ -299,7 +299,7 @@ html, body {
 .chat-bubble {
   display: inline-flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   background: rgba(12, 16, 26, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
@@ -311,6 +311,18 @@ html, body {
   animation: chatBubbleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   width: fit-content;
   max-width: 95%;
+}
+
+.chat-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 6px;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+  display: inline-block;
+  background: #1e293b;
 }
 
 @keyframes chatBubbleIn {
