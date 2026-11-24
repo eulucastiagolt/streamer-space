@@ -878,6 +878,7 @@
   const tabEditor = document.getElementById('tab-editor');
   const viewLive = document.getElementById('view-live');
   const viewEditor = document.getElementById('view-editor');
+  const appLayout = document.querySelector('.app-layout');
 
   if (tabLive && tabEditor && viewLive && viewEditor) {
     tabLive.addEventListener('click', () => {
@@ -885,6 +886,7 @@
       tabEditor.classList.remove('active');
       viewLive.classList.add('active');
       viewEditor.classList.remove('active');
+      if (appLayout) appLayout.classList.remove('editor-mode');
     });
 
     tabEditor.addEventListener('click', () => {
@@ -892,9 +894,12 @@
       tabLive.classList.remove('active');
       viewEditor.classList.add('active');
       viewLive.classList.remove('active');
-      if (typeof window.initOverlayEditor === 'function') {
-        window.initOverlayEditor();
-      }
+      if (appLayout) appLayout.classList.add('editor-mode');
+      requestAnimationFrame(() => {
+        if (typeof window.initOverlayEditor === 'function') {
+          window.initOverlayEditor();
+        }
+      });
     });
   }
 

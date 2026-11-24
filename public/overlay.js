@@ -722,8 +722,25 @@
     const winW = window.innerWidth || canvasW;
     const winH = window.innerHeight || canvasH;
 
-    const scaleX = (winW && canvasW) ? winW / canvasW : 1;
-    const scaleY = (winH && canvasH) ? winH / canvasH : 1;
+    // Uniformly scale the logical canvas to fit the viewport when previewed in smaller windows
+    const overlayApp = document.getElementById('overlay-app');
+    if (overlayApp) {
+      overlayApp.style.position = 'absolute';
+      overlayApp.style.width = `${canvasW}px`;
+      overlayApp.style.height = `${canvasH}px`;
+      const isExactCanvas = Math.abs(winW - canvasW) < 10 && Math.abs(winH - canvasH) < 10;
+      if (isExactCanvas) {
+        overlayApp.style.transform = 'none';
+        overlayApp.style.left = '0px';
+        overlayApp.style.top = '0px';
+      } else {
+        const scale = Math.min(winW / canvasW, winH / canvasH);
+        overlayApp.style.transformOrigin = 'top left';
+        overlayApp.style.transform = `scale(${scale})`;
+        overlayApp.style.left = `${Math.round((winW - canvasW * scale) / 2)}px`;
+        overlayApp.style.top = `${Math.round((winH - canvasH * scale) / 2)}px`;
+      }
+    }
 
     // Elements mapping
     const widgetElements = {
@@ -755,7 +772,7 @@
         }
       }
 
-      // 2. Position & Size (Absolute positioning in px)
+      // 2. Position & Size in logical canvas space (clamped to logical canvas bounds)
       const pos = widgetConf.position || {};
       const origW = typeof pos.width === 'number' ? pos.width : 300;
       const origH = typeof pos.height === 'number' ? pos.height : 100;
@@ -763,20 +780,10 @@
       const origY = typeof pos.y === 'number' ? pos.y : 0;
       const zIndex = typeof pos.zIndex === 'number' ? pos.zIndex : 10;
 
-      // Scale to viewport if viewport differs from logical canvas
-      const isExactCanvas = Math.abs(winW - canvasW) < 10 && Math.abs(winH - canvasH) < 10;
-      const w = isExactCanvas ? origW : Math.round(origW * scaleX);
-      const h = isExactCanvas ? origH : Math.round(origH * scaleY);
-      const posX = isExactCanvas ? origX : Math.round(origX * scaleX);
-      const posY = isExactCanvas ? origY : Math.round(origY * scaleY);
-
-      // Clamp coordinates to canvas bounds
-      const maxBoundW = isExactCanvas ? canvasW : winW;
-      const maxBoundH = isExactCanvas ? canvasH : winH;
-      const clampedW = Math.min(w, maxBoundW);
-      const clampedH = Math.min(h, maxBoundH);
-      const clampedX = Math.max(0, Math.min(posX, maxBoundW - clampedW));
-      const clampedY = Math.max(0, Math.min(posY, maxBoundH - clampedH));
+      const clampedW = Math.min(origW, canvasW);
+      const clampedH = Math.min(origH, canvasH);
+      const clampedX = Math.max(0, Math.min(origX, canvasW - clampedW));
+      const clampedY = Math.max(0, Math.min(origY, canvasH - clampedH));
 
       el.style.position = 'absolute';
       el.style.left = `${clampedX}px`;
@@ -786,22 +793,37 @@
       el.style.zIndex = `${zIndex}`;
       el.style.boxSizing = 'border-box';
 
-      // 3. Common Styles
+      // 3. Common Styles (keep wrapper containers transparent for gift-alerts & chat)
       const st = widgetConf.style || {};
       if (typeof st.opacity === 'number') {
         el.style.opacity = `${st.opacity}`;
       }
-      if (typeof st.borderRadius === 'number') {
-        el.style.borderRadius = `${st.borderRadius}px`;
-      }
-      if (st.backgroundColor) {
-        el.style.backgroundColor = st.backgroundColor;
-      }
-      if (st.textColor) {
-        el.style.color = st.textColor;
-      }
-      if (typeof st.fontSize === 'number') {
-        el.style.fontSize = `${st.fontSize}px`;
+
+      if (id === 'gift-alerts') {
+        // Container stays transparent; styles apply to individual alert banners
+        el.style.backgroundColor = 'transparent';
+        el.style.borderRadius = '0px';
+      } else if (id === 'chat') {
+        // Chat widget wrapper stays transparent; styles apply to individual chat bubbles
+        el.style.backgroundColor = 'transparent';
+        el.style.borderRadius = '0px';
+        if (st.backgroundColor) el.style.setProperty('--chat-bubble-bg', st.backgroundColor);
+        if (typeof st.borderRadius === 'number') el.style.setProperty('--chat-bubble-radius', `${st.borderRadius}px`);
+        if (st.textColor) el.style.setProperty('--chat-text-color', st.textColor);
+        if (typeof st.fontSize === 'number') el.style.fontSize = `${st.fontSize}px`;
+      } else {
+        if (typeof st.borderRadius === 'number') {
+          el.style.borderRadius = `${st.borderRadius}px`;
+        }
+        if (st.backgroundColor) {
+          el.style.backgroundColor = st.backgroundColor;
+        }
+        if (st.textColor) {
+          el.style.color = st.textColor;
+        }
+        if (typeof st.fontSize === 'number') {
+          el.style.fontSize = `${st.fontSize}px`;
+        }
       }
 
       // Widget-specific styles & options

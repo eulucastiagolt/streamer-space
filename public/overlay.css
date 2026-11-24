@@ -187,6 +187,7 @@ html, body {
 .stat-pill {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   background: rgba(12, 16, 26, 0.82);
   border: 1.5px solid rgba(255, 255, 255, 0.15);
@@ -196,6 +197,7 @@ html, body {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   box-sizing: border-box;
   pointer-events: auto;
+  white-space: nowrap;
 }
 
 .like-stat-pill {
@@ -329,13 +331,13 @@ html, body {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
-  background: rgba(12, 16, 26, 0.82);
+  background: var(--chat-bubble-bg, rgba(12, 16, 26, 0.82));
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
+  border-radius: var(--chat-bubble-radius, 12px);
   padding: 6px 12px;
   backdrop-filter: blur(6px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-  font-size: 0.95rem;
+  font-size: 0.95em;
   line-height: 1.4;
   animation: chatBubbleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   width: fit-content;
@@ -398,7 +400,7 @@ html, body {
 }
 
 .chat-text {
-  color: #ffffff;
+  color: var(--chat-text-color, #ffffff);
   font-weight: 500;
   word-break: break-word;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
