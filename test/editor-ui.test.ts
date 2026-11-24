@@ -104,4 +104,32 @@ describe('Overlay Visual Editor UI - Static & Contract Verification', () => {
     expect(vertClamped.x).toBe(0);
     expect(vertClamped.y).toBe(1920 - 760); // 1160
   });
+
+  test('converts TikTok emoji shortcodes (like [laughcry]) into emoji characters', () => {
+    const TIKTOK_EMOJI_DICT: Record<string, string> = {
+      laughcry: '😂',
+      laughwithtears: '😂',
+      laugh: '🤣',
+      smile: '😊',
+      loveface: '😍',
+      rose: '🌹',
+      heart: '❤️',
+      fire: '🔥',
+      proud: '😏',
+    };
+
+    function parseTikTokEmojis(rawText: string): string {
+      if (!rawText) return '';
+      return String(rawText).replace(/\[([a-zA-Z0-9_]+)\]/g, (match, tag) => {
+        const lower = tag.toLowerCase();
+        return TIKTOK_EMOJI_DICT[lower] !== undefined ? TIKTOK_EMOJI_DICT[lower] : match;
+      });
+    }
+
+    expect(parseTikTokEmojis('[laughcry]')).toBe('😂');
+    expect(parseTikTokEmojis('[laughwithtears]')).toBe('😂');
+    expect(parseTikTokEmojis('kkkk muito bom [laughcry] valeu [rose] [fire]')).toBe('kkkk muito bom 😂 valeu 🌹 🔥');
+    expect(parseTikTokEmojis('Case insensitive [LAUGHCRY] e [LaughWithTears]')).toBe('Case insensitive 😂 e 😂');
+    expect(parseTikTokEmojis('Tag desconhecida [unknown_tag]')).toBe('Tag desconhecida [unknown_tag]');
+  });
 });

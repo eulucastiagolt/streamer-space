@@ -109,6 +109,35 @@ export class TikTokLiveAdapter implements LiveEventSource {
         comment: e.content || '',
         avatarUrl: user?.avatarThumb?.urlList?.[0],
         timestamp: e.common?.createTime ? Number(e.common.createTime) : Date.now(),
+        emotes: Array.isArray((e as any).emotes)
+          ? (e as any).emotes
+              .map((em: any) => ({
+                placeInContent: em.placeInContent,
+                imageUrl: em.emote?.image?.urlList?.[0],
+                name: em.emote?.emoteId,
+              }))
+              .filter((em: any) => Boolean(em.imageUrl))
+          : undefined,
+      };
+      this._callbacks.onChat(rawChat);
+    });
+
+    connection.on(WebcastEvent.EMOTE, (e) => {
+      if (!this._callbacks) return;
+      const user = e.user as any;
+      const emoteList = Array.isArray((e as any).emoteList) ? (e as any).emoteList : [];
+      const emoteUrls = emoteList
+        .map((em: any) => em.image?.urlList?.[0])
+        .filter(Boolean);
+
+      const rawChat: RawChatMessage = {
+        id: e.common?.msgId,
+        username: user?.displayId || user?.uniqueId || user?.nickname || 'anônimo',
+        displayName: user?.nickname || user?.displayId || user?.uniqueId,
+        comment: '',
+        avatarUrl: user?.avatarThumb?.urlList?.[0],
+        timestamp: e.common?.createTime ? Number(e.common.createTime) : Date.now(),
+        emotes: emoteUrls.map((url: string) => ({ imageUrl: url })),
       };
       this._callbacks.onChat(rawChat);
     });

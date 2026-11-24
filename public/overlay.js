@@ -270,6 +270,101 @@
     return `chat-author-color-${idx}`;
   }
 
+  // TikTok shortcode dictionary for platform secret emojis
+  const TIKTOK_EMOJI_DICT = {
+    laughcry: '😂',
+    laughwithtears: '😂',
+    laugh: '🤣',
+    smile: '😊',
+    happy: '😄',
+    joyful: '😆',
+    hehe: '🤭',
+    funnyface: '🤪',
+    loveface: '😍',
+    lovely: '🥰',
+    cute: '🥺',
+    blink: '😉',
+    cool: '😎',
+    proud: '😏',
+    pride: '😌',
+    thinking: '🤔',
+    awkward: '😅',
+    flushed: '😳',
+    shock: '😱',
+    scream: '😱',
+    surprised: '😮',
+    astonish: '😲',
+    stun: '😵',
+    speechless: '😶',
+    disdain: '😒',
+    facewithrollingeyes: '🙄',
+    sulk: '😤',
+    angry: '😠',
+    rage: '😡',
+    evil: '😈',
+    wicked: '😈',
+    cry: '😢',
+    weep: '😭',
+    tears: '🥲',
+    yummy: '😋',
+    drool: '🤤',
+    nap: '😴',
+    slap: '🤦',
+    shout: '🗣️',
+    angel: '😇',
+    greedy: '🤑',
+    wow: '🤩',
+    wronged: '🥺',
+    rose: '🌹',
+    heart: '❤️',
+    fire: '🔥',
+    clap: '👏',
+    100: '💯',
+    crown: '👑',
+    star: '⭐',
+    kiss: '😘',
+    party: '🎉',
+    sunglasses: '😎',
+    thumbsup: '👍',
+    salute: '🫡',
+    skull: '💀',
+    sob: '😭',
+    rofl: '🤣',
+    ok: '👌',
+    pray: '🙏',
+    flex: '💪',
+  };
+
+  function parseTikTokEmojis(rawText) {
+    if (!rawText) return '';
+    return String(rawText).replace(/\[([a-zA-Z0-9_]+)\]/g, (match, tag) => {
+      const lower = tag.toLowerCase();
+      return TIKTOK_EMOJI_DICT[lower] !== undefined ? TIKTOK_EMOJI_DICT[lower] : match;
+    });
+  }
+
+  function renderCommentWithEmotes(container, rawText, emotes) {
+    const formatted = parseTikTokEmojis(rawText);
+    if (formatted) {
+      container.appendChild(document.createTextNode(formatted));
+    }
+    if (Array.isArray(emotes) && emotes.length > 0) {
+      emotes.forEach(em => {
+        if (em && em.imageUrl) {
+          const img = document.createElement('img');
+          img.className = 'chat-custom-emote';
+          img.src = em.imageUrl;
+          img.alt = em.name || 'emote';
+          img.referrerPolicy = 'no-referrer';
+          img.onerror = function () {
+            img.remove();
+          };
+          container.appendChild(img);
+        }
+      });
+    }
+  }
+
   /**
    * Render a chat message safely using textContent (XSS protection)
    * @param {Object} chatData 
@@ -312,10 +407,10 @@
     authorSpan.textContent = `${authorName}:`;
     bubble.appendChild(authorSpan);
 
-    // Message text (Strictly textContent)
+    // Message text with TikTok emoji parsing and custom stickers
     const textSpan = document.createElement('span');
     textSpan.className = 'chat-text';
-    textSpan.textContent = chatData.comment || '';
+    renderCommentWithEmotes(textSpan, chatData.comment || '', chatData.emotes);
     bubble.appendChild(textSpan);
 
     chatMessages.appendChild(bubble);

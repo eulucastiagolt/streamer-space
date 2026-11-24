@@ -404,6 +404,15 @@ html, body {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
+.chat-custom-emote {
+  width: 24px;
+  height: 24px;
+  vertical-align: middle;
+  display: inline-block;
+  margin: 0 3px;
+  object-fit: contain;
+}
+
 /* ==========================================================================
    LIKES GOAL WIDGET ('likes-goal')
    ========================================================================== */

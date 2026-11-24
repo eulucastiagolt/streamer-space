@@ -222,8 +222,103 @@
     metricChats.textContent = Number(metrics.chats || 0).toLocaleString('pt-BR');
   }
 
+  // TikTok shortcode dictionary for platform secret emojis
+  const TIKTOK_EMOJI_DICT = {
+    laughcry: '😂',
+    laughwithtears: '😂',
+    laugh: '🤣',
+    smile: '😊',
+    happy: '😄',
+    joyful: '😆',
+    hehe: '🤭',
+    funnyface: '🤪',
+    loveface: '😍',
+    lovely: '🥰',
+    cute: '🥺',
+    blink: '😉',
+    cool: '😎',
+    proud: '😏',
+    pride: '😌',
+    thinking: '🤔',
+    awkward: '😅',
+    flushed: '😳',
+    shock: '😱',
+    scream: '😱',
+    surprised: '😮',
+    astonish: '😲',
+    stun: '😵',
+    speechless: '😶',
+    disdain: '😒',
+    facewithrollingeyes: '🙄',
+    sulk: '😤',
+    angry: '😠',
+    rage: '😡',
+    evil: '😈',
+    wicked: '😈',
+    cry: '😢',
+    weep: '😭',
+    tears: '🥲',
+    yummy: '😋',
+    drool: '🤤',
+    nap: '😴',
+    slap: '🤦',
+    shout: '🗣️',
+    angel: '😇',
+    greedy: '🤑',
+    wow: '🤩',
+    wronged: '🥺',
+    rose: '🌹',
+    heart: '❤️',
+    fire: '🔥',
+    clap: '👏',
+    100: '💯',
+    crown: '👑',
+    star: '⭐',
+    kiss: '😘',
+    party: '🎉',
+    sunglasses: '😎',
+    thumbsup: '👍',
+    salute: '🫡',
+    skull: '💀',
+    sob: '😭',
+    rofl: '🤣',
+    ok: '👌',
+    pray: '🙏',
+    flex: '💪',
+  };
+
+  function parseTikTokEmojis(rawText) {
+    if (!rawText) return '';
+    return String(rawText).replace(/\[([a-zA-Z0-9_]+)\]/g, (match, tag) => {
+      const lower = tag.toLowerCase();
+      return TIKTOK_EMOJI_DICT[lower] !== undefined ? TIKTOK_EMOJI_DICT[lower] : match;
+    });
+  }
+
+  function renderCommentWithEmotes(container, rawText, emotes) {
+    const formatted = parseTikTokEmojis(rawText);
+    if (formatted) {
+      container.appendChild(document.createTextNode(formatted));
+    }
+    if (Array.isArray(emotes) && emotes.length > 0) {
+      emotes.forEach(em => {
+        if (em && em.imageUrl) {
+          const img = document.createElement('img');
+          img.className = 'chat-custom-emote';
+          img.src = em.imageUrl;
+          img.alt = em.name || 'emote';
+          img.referrerPolicy = 'no-referrer';
+          img.onerror = function () {
+            img.remove();
+          };
+          container.appendChild(img);
+        }
+      });
+    }
+  }
+
   // Add or update Item in Live Feed (Safely sanitize with textContent)
-  function addFeedItem(type, meta, author, contentText, avatarUrl, streakId) {
+  function addFeedItem(type, meta, author, contentText, avatarUrl, streakId, emotes) {
     if (feedEmptyState) {
       feedEmptyState.style.display = 'none';
     }
@@ -314,10 +409,14 @@
     timeEl.textContent = now.toLocaleTimeString('pt-BR');
     metaEl.appendChild(timeEl);
 
-    // Text content - ALWAYS set via textContent
+    // Text content - formatted with TikTok emoji parsing
     const textEl = document.createElement('div');
     textEl.className = 'feed-item-text';
-    textEl.textContent = contentText;
+    if (type === 'chat') {
+      renderCommentWithEmotes(textEl, contentText, emotes);
+    } else {
+      textEl.textContent = contentText;
+    }
 
     contentContainer.appendChild(metaEl);
     contentContainer.appendChild(textEl);
@@ -373,7 +472,9 @@
           data.badge || 'Chat',
           data.displayName || data.username || 'Anônimo',
           data.comment || '',
-          data.profilePictureUrl
+          data.profilePictureUrl,
+          undefined,
+          data.emotes
         );
         break;
 
@@ -722,11 +823,11 @@
   // Simulation Buttons
   btnSimChat.addEventListener('click', () => {
     const comments = [
-      'Top demais essa live! 🔥',
-      'Salve streamer! Tamo junto! 🚀',
-      'Mandando muito bem no game! 🎮',
-      'Boa tarde a todos no chat! ✨',
-      'Qual a sensibilidade que você usa?'
+      'Top demais essa live! [laughcry] [fire]',
+      'kkkkk não aguento [laughwithtears] [rose]',
+      'Mandando muito bem no game! [proud] [cool]',
+      'Boa tarde a todos no chat! [smile] [heart]',
+      'Live incrível [loveface] [clap]'
     ];
     const users = ['lucas_dev', 'mari_stream', 'pedro_viewer', 'ana_gamer', 'rodrigo_pro'];
     const randomComment = comments[Math.floor(Math.random() * comments.length)];

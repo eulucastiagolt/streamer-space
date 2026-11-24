@@ -64,12 +64,12 @@ export class SimulatedEventSource implements LiveEventSource {
   emitChat(chat?: Partial<RawChatMessage>): void {
     if (!this._callbacks) return;
     const sampleComments = [
-      'Boa noite galera! 🔥',
-      'Salve do Brasil! 🇧🇷',
-      'Muito top essa live!',
-      'Alô streamer, manda um abraço!',
-      'Bora bater a meta de likes hoje!',
-      'Sensacional essa transmissão!',
+      'kkkk não aguento esse streamer [laughcry]',
+      'Muito bom mano kkkk [laughwithtears] [fire]',
+      'Salve do Brasil! [smile] [clap]',
+      'Live perfeita demais [loveface] [heart]',
+      'Bora bater a meta de likes hoje! [proud] 🚀',
+      'Sensacional essa transmissão! [rose] 🔥',
     ];
     const sampleUsers = ['pedro_gamer', 'mari_stream', 'carlos_silva', 'ana_paula', 'lucas_dev'];
     const sampleAvatars: Record<string, string> = {

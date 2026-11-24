@@ -382,6 +382,7 @@ export class SessionManager {
         comment: chat.comment,
         profilePictureUrl: chat.avatarUrl,
         badge: undefined,
+        emotes: chat.emotes,
       },
       chat.id,
       chat.timestamp ? new Date(chat.timestamp).toISOString() : undefined

@@ -785,6 +785,15 @@ body {
   line-height: 1.4;
 }
 
+.chat-custom-emote {
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+  display: inline-block;
+  margin: 0 2px;
+  object-fit: contain;
+}
+
 /* Feed item accent variations */
 .feed-item-chat {
   border-left: 3px solid #3b82f6;

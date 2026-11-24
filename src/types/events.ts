@@ -27,12 +27,19 @@ export interface BaseEvent<T extends EventType = EventType, D = unknown> {
   data: D;
 }
 
+export interface ChatEmote {
+  placeInContent?: number;
+  imageUrl?: string;
+  name?: string;
+}
+
 export interface ChatMessageData {
   username: string;
   displayName?: string;
   comment: string;
   profilePictureUrl?: string;
   badge?: string;
+  emotes?: ChatEmote[];
 }
 
 export interface EngagementLikeData {
@@ -147,6 +154,7 @@ export interface RawChatMessage {
   comment: string;
   avatarUrl?: string;
   timestamp?: number;
+  emotes?: ChatEmote[];
 }
 
 export interface RawLikeEvent {
