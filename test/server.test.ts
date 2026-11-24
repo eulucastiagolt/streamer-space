@@ -327,4 +327,40 @@ describe('SSE Streaming and Overlay Reconnect / Refresh Snapshot', () => {
     const res = await fetch(`${baseUrl}/overlay/invalid-token-999/events`);
     expect(res.status).toBe(403);
   });
+
+  it('streams filtered jar contents, keeps viewer identity and resets the jar independently', async () => {
+    const jarSession = new SessionManager({ overlayToken });
+    const jarServer = createHttpServer({ port: 0, hostname: '127.0.0.1', sessionManager: jarSession });
+    const base = `http://127.0.0.1:${jarServer.port}`;
+    try {
+      const overlay = await fetch(`${base}/overlay/${overlayToken}/gift-jar`);
+      expect(await overlay.text()).toContain('id="gift-jar-overlay"');
+      const response = await fetch(`${base}/overlay/${overlayToken}/events?view=gift-jar&giftFilter=minimum&minCoins=5`);
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      const readJar = async () => JSON.parse(decoder.decode((await reader.read()).value).split('data: ')[1]);
+      try {
+        expect((await readJar()).count).toBe(0);
+        const gift = { giftId: 'rose', giftName: 'Rosa', username: 'ana', displayName: 'Ana',
+          avatarUrl: 'https://example.org/ana.png', count: 1, repeatCount: 10, repeatEnd: true };
+        jarSession.handleGift({ ...gift, id: 'rose', diamondCount: 1 });
+        expect((await readJar()).count).toBe(0);
+        jarSession.handleGift({ ...gift, id: 'heart', giftId: 'heart', giftName: 'Coração', diamondCount: 10 });
+        const jar = await readJar();
+        expect(jar.count).toBe(10);
+        expect(jar.coins).toBe(100);
+        expect(jar.ranking).toEqual([{ username: 'ana', displayName: 'Ana', avatarUrl: gift.avatarUrl, count: 100 }]);
+        jarSession.handleLike({ username: 'ana', displayName: 'Ana', avatarUrl: gift.avatarUrl, count: 12 });
+        expect(jarSession.getEngagementWidgets().topLikers[0].avatarUrl).toBe(gift.avatarUrl);
+        expect(jarSession.getEngagementWidgets().topGifters[0].count).toBe(110);
+        expect((await fetch(`${base}/api/widgets/gift-jar/reset`, { method: 'POST' })).ok).toBe(true);
+        expect((await readJar()).count).toBe(0);
+        expect(jarSession.getEngagementWidgets().topGifters[0].count).toBe(110);
+      } finally {
+        await reader.cancel();
+      }
+    } finally {
+      jarServer.stop(true);
+    }
+  });
 });

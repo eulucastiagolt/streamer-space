@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'bun:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { SessionManager, normalizeUsername } from '../src/server/session.js';
 import type {
   LiveEventSource,
@@ -30,6 +33,44 @@ describe('normalizeUsername', () => {
     expect(() => normalizeUsername('user@name')).toThrow('Username do streamer contém caracteres inválidos');
     expect(() => normalizeUsername('user!#')).toThrow('Username do streamer contém caracteres inválidos');
   });
+});
+
+it('restores the latest selected profile and remembers an explicit disconnect across restarts', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'streamer-space-profile-'));
+  const connections: string[] = [];
+  const options = {
+    profileFile: join(directory, 'live-profile.json'),
+    sourceFactory: (username: string): LiveEventSource => ({
+      username,
+      isConnected: true,
+      async connect(username, callbacks) {
+        connections.push(username);
+        callbacks.onStatusChange('connected');
+      },
+      async disconnect() {},
+    }),
+  };
+
+  try {
+    const first = new SessionManager(options);
+    await first.connect('@primeiro');
+    await first.connect('@segundo');
+
+    const restarted = new SessionManager(options);
+    await restarted.restoreProfile();
+    expect(restarted.getSnapshot().targetUsername).toBe('segundo');
+    expect(restarted.status).toBe('connected');
+    expect(connections).toEqual(['primeiro', 'segundo', 'segundo']);
+
+    await restarted.disconnect();
+    const afterDisconnect = new SessionManager(options);
+    await afterDisconnect.restoreProfile();
+    expect(afterDisconnect.getSnapshot().targetUsername).toBe('segundo');
+    expect(afterDisconnect.status).toBe('idle');
+    expect(connections).toHaveLength(3);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 describe('SessionManager - Like Aggregation', () => {
@@ -368,7 +409,9 @@ describe('SessionManager - Profile Switching & Isolation', () => {
     (source1Callbacks as LiveEventSourceCallbacks | null)?.onFollowerCount?.(200);
     expect(session.getEngagementWidgets().profileFollowers).toBe(200);
     session.handleFollow({ username: 'later_fan' });
-    expect(session.getEngagementWidgets().profileFollowers).toBe(201);
+    expect(session.getEngagementWidgets().profileFollowers).toBe(200);
+    (source1Callbacks as LiveEventSourceCallbacks | null)?.onFollowerCount?.(199);
+    expect(session.getEngagementWidgets().profileFollowers).toBe(199);
 
     // Generate room state for alpha
     session.handleLike({ id: 'alpha-like-1', count: 10 });
@@ -508,7 +551,7 @@ describe('Engagement widgets', () => {
     session.handleLike({ username: 'alice', count: 2, totalLikes: 500 });
     session.handleLike({ username: 'bob', count: 4, id: 'like-bob' });
     session.handleLike({ username: 'bob', count: 4, id: 'like-bob' });
-    const gift = { username: 'alice', giftId: 'rose', giftName: 'Rosa', count: 1, groupId: 'combo' };
+    const gift = { username: 'alice', giftId: 'rose', giftName: 'Rosa', count: 1, groupId: 'combo', diamondCount: 2 };
     session.handleGift({ ...gift, id: 'gift-1', repeatCount: 1, repeatEnd: false });
     expect(session.getEngagementWidgets().gifts).toBe(0);
     session.handleGift({ ...gift, id: 'gift-end', repeatCount: 3, repeatEnd: true });
@@ -518,7 +561,7 @@ describe('Engagement widgets', () => {
       profileFollowers: undefined,
       gifts: 3,
       topLikers: [{ username: 'bob', count: 4 }, { username: 'alice', count: 2 }],
-      topGifters: [{ username: 'alice', count: 3 }],
+      topGifters: [{ username: 'alice', count: 6 }],
     });
     await session.connect('simulador', { isSimulated: true });
     expect(session.getEngagementWidgets()).toEqual({ followers: 0, profileFollowers: undefined, gifts: 0, topLikers: [], topGifters: [] });

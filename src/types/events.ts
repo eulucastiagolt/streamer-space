@@ -8,6 +8,8 @@ import type { OverlayConfig } from './config.js';
 export type EventType =
   | 'chat.message'
   | 'engagement.like'
+  | 'engagement.like-total'
+  | 'engagement.reset'
   | 'gift.update'
   | 'gift.completed'
   | 'live.status'
@@ -68,6 +70,7 @@ export interface GiftCompletedData {
   diamondCount?: number;
   username: string;
   displayName?: string;
+  avatarUrl?: string;
   giftPictureUrl?: string;
   streakId?: string;
 }
@@ -87,6 +90,8 @@ export interface LiveStatusData {
   roomId?: string;
   roomTitle?: string;
   isSimulated: boolean;
+  profileFollowers?: number;
+  followerCountPending?: boolean;
 }
 
 export interface ViewerCountData {
@@ -106,6 +111,8 @@ export interface ShareData {
 export type StreamerSpaceEvent =
   | BaseEvent<'chat.message', ChatMessageData>
   | BaseEvent<'engagement.like', EngagementLikeData>
+  | BaseEvent<'engagement.like-total', Pick<EngagementLikeData, 'totalLikes' | 'label'>>
+  | BaseEvent<'engagement.reset', { widget: 'gift-jar' | 'top-liker' | 'top-gifters' }>
   | BaseEvent<'gift.update', GiftUpdateData>
   | BaseEvent<'gift.completed', GiftCompletedData>
   | BaseEvent<'live.status', LiveStatusData>
@@ -135,6 +142,8 @@ export interface SessionSnapshot {
   totalLikes: number;
   likesLabel: string;
   viewerCount?: number;
+  profileFollowers?: number;
+  followerCountPending?: boolean;
   recentChat: BaseEvent<'chat.message', ChatMessageData>[];
   recentGifts: BaseEvent<'gift.completed', GiftCompletedData>[];
   activeGiftStreak?: ActiveGiftStreak | null;
@@ -160,6 +169,8 @@ export interface RawChatMessage {
 export interface RawLikeEvent {
   id?: string;
   username?: string;
+  displayName?: string;
+  avatarUrl?: string;
   count: number; // delta
   totalLikes?: number; // total room likes if known
 }
@@ -172,6 +183,7 @@ export interface RawGiftEvent {
   diamondCount?: number;
   username: string;
   displayName?: string;
+  avatarUrl?: string;
   giftPictureUrl?: string;
   repeatEnd: boolean; // true when combo is finished or single gift
   repeatCount: number; // current repeat count
@@ -179,7 +191,8 @@ export interface RawGiftEvent {
 }
 
 export interface LiveEventSourceCallbacks {
-  onFollowerCount?: (count: number) => void;
+  onFollowerCount?: (count: number | undefined) => void;
+  onRoomLikeCount?: (count: number) => void;
   onStatusChange: (status: ConnectionStatus, message?: string, details?: { roomId?: string; roomTitle?: string }) => void;
   onChat: (chat: RawChatMessage) => void;
   onLike: (like: RawLikeEvent) => void;

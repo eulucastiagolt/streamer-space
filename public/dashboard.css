@@ -516,6 +516,11 @@ body {
   color: #fe2c55;
 }
 
+.metric-icon-followers {
+  background: rgba(167, 139, 250, 0.15);
+  color: #a78bfa;
+}
+
 .metric-icon-gifts {
   background: rgba(245, 158, 11, 0.15);
   color: #fbbf24;
@@ -1291,3 +1296,24 @@ body {
 .goal-settings label[hidden] {
   display: none;
 }
+
+.engagement-settings {
+  display: grid;
+  gap: .55rem;
+}
+
+.engagement-settings details {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  padding: .6rem .8rem;
+}
+
+.engagement-settings summary {
+  cursor: pointer;
+  font-size: .86rem;
+  font-weight: 650;
+}
+
+.engagement-settings .goal-settings { margin-block: .65rem .2rem; }
+.engagement-settings .widget-item-actions { flex-wrap: wrap; }

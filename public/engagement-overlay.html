@@ -6,14 +6,29 @@
   <meta name="referrer" content="no-referrer">
   <title>Streamer Space — Engajamento</title>
   <link rel="stylesheet" href="/overlay.css">
+  <link rel="stylesheet" href="/engagement-widgets.css">
+  <script defer src="/engagement-settings.js"></script>
+  <script defer src="/viewer-ranking.js"></script>
   <script defer src="/goal-widget.js"></script>
   <script defer src="/engagement-overlay.js"></script>
+  <script defer src="/gift-jar-overlay.js"></script>
 </head>
 <body class="engagement-overlay">
   <section class="engagement-card" hidden>
     <h1 id="engagement-title"></h1>
     <p id="engagement-empty" hidden></p>
     <ol id="engagement-ranking" hidden></ol>
+  </section>
+  <section id="gift-jar-overlay" class="gift-jar-overlay" hidden aria-label="Jarra de Presentes">
+    <div class="gift-jar-glass">
+      <div class="gift-jar-pile"></div>
+      <div class="gift-jar-falling" aria-hidden="true"></div>
+    </div>
+    <div class="gift-jar-alert" hidden></div>
+    <div class="gift-jar-summary">
+      <p class="gift-jar-total" hidden></p>
+      <ol class="gift-jar-ranking" hidden></ol>
+    </div>
   </section>
     <div id="likes-goal-widget" class="likes-goal-widget" hidden>
       <div class="likes-goal-header">

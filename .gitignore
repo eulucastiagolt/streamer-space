@@ -15,6 +15,8 @@
 /data/overlay-config.json
 /data/overlay-config.json.tmp.*
 /data/overlay-token.txt
+/data/live-profile.json
+/data/live-profile.json.tmp.*
 
 # Metadados locais de ferramentas e do sistema
 /.agents/

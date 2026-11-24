@@ -9,7 +9,8 @@
   let overlayToken = 'default-token';
   let currentSessionId = '';
   let currentTargetUsername = '';
-  let isConnected = false;
+  let liveStatus = 'idle';
+  let connectionRequestPending = false;
   let eventSource = null;
   let activeFilter = 'all';
 
@@ -26,6 +27,7 @@
   const inputFeedback = document.getElementById('input-feedback');
   const statusBadge = document.getElementById('status-badge');
   const btnConnect = document.getElementById('btn-connect');
+  const connectLabel = document.getElementById('connect-label');
   const btnDisconnect = document.getElementById('btn-disconnect');
   const btnPreview = document.getElementById('btn-preview');
   const btnCopyUrl = document.getElementById('btn-copy-url');
@@ -36,6 +38,8 @@
   const metricViewers = document.getElementById('metric-viewers');
   const metricLikes = document.getElementById('metric-likes');
   const metricLikesLabel = document.getElementById('metric-likes-label');
+  const metricFollowers = document.getElementById('metric-followers');
+  const metricFollowersStatus = document.getElementById('metric-followers-status');
   const metricGifts = document.getElementById('metric-gifts');
   const metricChats = document.getElementById('metric-chats');
 
@@ -77,7 +81,15 @@
 
   // Update Status Badge with distinct styles
   // States: invalid input, offline, connecting, connected, reconnecting, error, idle
+  function updateConnectAction() {
+    const active = ['connected', 'reconnecting'].includes(liveStatus);
+    const sameProfile = normalizeUsername(usernameInput.value).toLowerCase() === currentTargetUsername.toLowerCase();
+    if (connectLabel) connectLabel.textContent = active ? 'Trocar perfil' : 'Conectar';
+    btnConnect.disabled = connectionRequestPending || liveStatus === 'connecting' || (active && sameProfile);
+  }
+
   function updateStatusBadge(status, customMessage) {
+    liveStatus = status;
     statusBadge.className = 'badge';
     inputFeedback.textContent = '';
     usernameInput.classList.remove('input-error');
@@ -91,7 +103,6 @@
         if (customMessage) {
           inputFeedback.textContent = customMessage;
         }
-        btnConnect.disabled = false;
         btnDisconnect.disabled = true;
         break;
 
@@ -99,28 +110,24 @@
         statusBadge.classList.add('badge-offline');
         statusBadge.textContent = 'Offline';
         if (customMessage) inputFeedback.textContent = customMessage;
-        btnConnect.disabled = false;
         btnDisconnect.disabled = true;
         break;
 
       case 'connecting':
         statusBadge.classList.add('badge-connecting');
         statusBadge.textContent = 'Conectando...';
-        btnConnect.disabled = true;
         btnDisconnect.disabled = false;
         break;
 
       case 'connected':
         statusBadge.classList.add('badge-connected');
         statusBadge.textContent = 'Conectado';
-        btnConnect.disabled = true;
         btnDisconnect.disabled = false;
         break;
 
       case 'reconnecting':
         statusBadge.classList.add('badge-reconnecting');
         statusBadge.textContent = 'Reconectando...';
-        btnConnect.disabled = true;
         btnDisconnect.disabled = false;
         break;
 
@@ -128,7 +135,6 @@
         statusBadge.classList.add('badge-error');
         statusBadge.textContent = 'Erro';
         if (customMessage) inputFeedback.textContent = customMessage;
-        btnConnect.disabled = false;
         btnDisconnect.disabled = true;
         break;
 
@@ -136,10 +142,10 @@
       default:
         statusBadge.classList.add('badge-idle');
         statusBadge.textContent = 'Desconectado';
-        btnConnect.disabled = false;
         btnDisconnect.disabled = true;
         break;
     }
+    updateConnectAction();
   }
 
   // Format OBS overlay URL
@@ -149,6 +155,16 @@
 
   function getWidgetUrl(widget) {
     const url = `${window.location.origin}/overlay/${overlayToken}/${widget}`;
+    const engagement = document.querySelector(`[data-engagement-settings="${widget}"]`);
+    if (engagement) {
+      const params = new URLSearchParams();
+      for (const field of engagement.elements) {
+        if (field.name && !field.disabled && field.validity.valid && field.value !== field.dataset.default) {
+          params.set(field.name, field.value);
+        }
+      }
+      return params.size ? `${url}?${params}` : url;
+    }
     const settings = document.querySelector(`[data-goal-settings="${widget}"]`);
     if (!settings) return url;
     const params = new URLSearchParams();
@@ -227,8 +243,9 @@
     'likes-goal': [520, 160],
     'followers-goal': [440, 160],
     'gifts-goal': [440, 160],
-    'top-liker': [440, 240],
-    'top-gifters': [440, 240],
+    'top-liker': [440, 540],
+    'top-gifters': [440, 540],
+    'gift-jar': [480, 720],
   };
   const galleryNav = document.getElementById('overlay-gallery-nav');
   const gallerySearch = document.getElementById('overlay-gallery-search');
@@ -241,7 +258,7 @@
   let previewRequest;
 
   async function updateGalleryPreview() {
-    galleryExample.hidden = !['followers-goal', 'gifts-goal', 'top-liker', 'top-gifters'].includes(selectedWidget);
+    galleryExample.hidden = !['followers-goal', 'gifts-goal', 'top-liker', 'top-gifters', 'gift-jar'].includes(selectedWidget);
     galleryExample.textContent = showGalleryExample ? 'Ver ao vivo' : 'Ver exemplo';
     if (overlayToken === 'default-token') return;
     const url = new URL(getWidgetUrl(selectedWidget));
@@ -275,6 +292,8 @@
   function selectGalleryWidget(widget) {
     if (selectedWidget !== widget) showGalleryExample = false;
     selectedWidget = widget;
+    galleryFrame.style.height = document.querySelector(`[data-engagement-settings="${widget}"]`)
+      ? `${overlaySizes[widget][1]}px` : '';
     galleryCards.forEach(card => { card.hidden = card.id !== `widget-card-${widget}`; });
     galleryNav.querySelectorAll('button').forEach(button => {
       button.setAttribute('aria-pressed', String(button.dataset.galleryWidget === widget));
@@ -309,6 +328,109 @@
     showGalleryExample = !showGalleryExample;
     updateGalleryPreview();
   });
+
+  for (const widget of ['gift-jar', 'top-liker', 'top-gifters']) {
+    const card = document.getElementById(`widget-card-${widget}`);
+    const form = document.createElement('form');
+    form.dataset.engagementSettings = widget;
+    const storageKey = `streamer-space:overlay:${widget}`;
+    let saved = '';
+    try { saved = localStorage.getItem(storageKey) || ''; } catch {}
+    const values = readEngagementSettings(widget, new URLSearchParams(saved));
+    for (const [group, fields] of Object.entries(engagementFields(widget))) {
+      const details = document.createElement('details');
+      const summary = document.createElement('summary');
+      summary.textContent = group;
+      const fieldsGrid = document.createElement('div');
+      fieldsGrid.className = 'goal-settings';
+      for (const [name, caption, type, fallback, choices, max, step] of fields) {
+        const label = document.createElement('label');
+        label.textContent = caption;
+        const isSelect = type === 'select' || type === 'toggle';
+        const field = document.createElement(isSelect ? 'select' : 'input');
+        field.className = 'config-input';
+        field.name = name;
+        if (isSelect) {
+          for (const [value, text] of Object.entries(type === 'toggle' ? { 1: 'Sim', 0: 'Não' } : choices)) {
+            field.add(new Option(text, value));
+          }
+        } else {
+          field.type = type;
+          if (type === 'number') {
+            field.min = choices;
+            field.max = max;
+            field.step = step ?? 1;
+          }
+          if (type === 'text') field.maxLength = 256;
+        }
+        field.dataset.default = String(type === 'toggle' ? Number(fallback) : fallback);
+        field.value = String(type === 'toggle' ? Number(values[name]) : values[name]);
+        label.append(field);
+        fieldsGrid.append(label);
+      }
+      details.append(summary, fieldsGrid);
+      form.append(details);
+    }
+
+    const save = () => {
+      if (widget === 'gift-jar') {
+        for (const [name, condition] of [['giftIds', 'selected'], ['minCoins', 'minimum']]) {
+          const field = form.elements[name];
+          field.disabled = form.elements.giftFilter.value !== condition;
+          field.closest('label').hidden = field.disabled;
+        }
+      }
+      const params = new URLSearchParams();
+      for (const field of form.elements) {
+        if (field.name && field.validity.valid) params.set(field.name, field.value);
+      }
+      try { localStorage.setItem(storageKey, params.toString()); } catch {}
+      updateObsUrlDisplay();
+    };
+
+    form.className = 'engagement-settings';
+    const actions = document.createElement('div');
+    actions.className = 'widget-item-actions';
+    const addButton = (label, onClick) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn btn-secondary btn-sm';
+      button.textContent = label;
+      button.addEventListener('click', onClick);
+      actions.append(button);
+    };
+    addButton('Testar', () => {
+      showGalleryExample = true;
+      galleryFrame.removeAttribute('src');
+      updateGalleryPreview();
+    });
+    addButton('Restaurar configurações', () => {
+      for (const field of form.elements) {
+        if (field.name) field.value = field.dataset.default;
+      }
+      save();
+    });
+    addButton(widget === 'gift-jar' ? 'Esvaziar jarra' : 'Limpar ranking', async event => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      try {
+        const response = await fetch(`/api/widgets/${widget}/reset`, { method: 'POST' });
+        if (!response.ok) throw new Error();
+        showGalleryExample = false;
+        updateGalleryPreview();
+        showToast(widget === 'gift-jar' ? 'Jarra esvaziada.' : 'Ranking limpo.');
+      } catch {
+        showToast('Não foi possível redefinir o overlay.', 'error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+    form.append(actions);
+    form.addEventListener('submit', event => event.preventDefault());
+    form.addEventListener('input', save);
+    card.append(form);
+    save();
+  }
   selectGalleryWidget(selectedWidget);
 
   function updateObsUrlDisplay() {
@@ -396,6 +518,12 @@
     metricLikes.textContent = Number(metrics.likes || 0).toLocaleString('pt-BR');
     metricGifts.textContent = Number(metrics.gifts || 0).toLocaleString('pt-BR');
     metricChats.textContent = Number(metrics.chats || 0).toLocaleString('pt-BR');
+  }
+
+  function updateProfileFollowers({ profileFollowers, followerCountPending }) {
+    const hasTotal = Number.isSafeInteger(profileFollowers) && profileFollowers >= 0;
+    metricFollowers.textContent = hasTotal ? profileFollowers.toLocaleString('pt-BR') : '—';
+    metricFollowersStatus.textContent = hasTotal ? '' : followerCountPending ? 'Carregando…' : 'Indisponível';
   }
 
   // TikTok shortcode dictionary for platform secret emojis
@@ -654,6 +782,7 @@
         );
         break;
 
+      case 'engagement.like-total':
       case 'engagement.like':
         if (typeof data.totalLikes === 'number') {
           metrics.likes = data.totalLikes;
@@ -664,6 +793,7 @@
           metricLikesLabel.textContent = data.label;
         }
         updateMetricsUI();
+        if (eventObj.type === 'engagement.like-total') break;
         const likeCount = data.count || 1;
         const likeAuthor = data.username ? `@${data.username}` : 'Espectadores';
         addFeedItem(
@@ -710,6 +840,13 @@
         break;
 
       case 'live.status':
+        if (eventObj.sessionId && eventObj.sessionId !== currentSessionId) {
+          currentSessionId = eventObj.sessionId;
+          metrics = { viewers: null, likes: 0, gifts: 0, chats: 0 };
+          metricLikesLabel.textContent = 'curtidas observadas desde a conexão';
+          clearFeed();
+          updateMetricsUI();
+        }
         handleStatusChange(data);
         break;
 
@@ -739,12 +876,14 @@
   // Handle Status Change
   function handleStatusChange(statusData) {
     if (!statusData) return;
+    updateProfileFollowers(statusData);
     const status = statusData.status || 'idle';
     const message = statusData.message || '';
     
     if (statusData.targetUsername) {
+      const previousTarget = currentTargetUsername;
       currentTargetUsername = statusData.targetUsername;
-      if (!usernameInput.value) {
+      if (!usernameInput.value || normalizeUsername(usernameInput.value) === previousTarget) {
         usernameInput.value = statusData.targetUsername;
       }
     }
@@ -752,7 +891,6 @@
     updateStatusBadge(status, message);
 
     if (status === 'connected') {
-      isConnected = true;
       addFeedItem(
         'status',
         'Conexão',
@@ -760,7 +898,6 @@
         `Conectado à live de @${currentTargetUsername}${statusData.roomTitle ? ` - ${statusData.roomTitle}` : ''}`
       );
     } else if (status === 'offline') {
-      isConnected = false;
       addFeedItem(
         'status',
         'Offline',
@@ -768,7 +905,6 @@
         `A live de @${currentTargetUsername || 'streamer'} está offline no momento.`
       );
     } else if (status === 'error') {
-      isConnected = false;
       addFeedItem(
         'status',
         'Erro',
@@ -788,7 +924,9 @@
   // Apply Initial Snapshot
   function applySnapshot(snapshot) {
     if (!snapshot) return;
+    updateProfileFollowers(snapshot);
 
+    const previousTarget = currentTargetUsername;
     currentSessionId = snapshot.sessionId || '';
     currentTargetUsername = snapshot.targetUsername || '';
     if (snapshot.overlayToken) {
@@ -796,26 +934,18 @@
       updateObsUrlDisplay();
     }
 
-    if (snapshot.targetUsername && !usernameInput.value) {
+    if (snapshot.targetUsername && (!usernameInput.value || normalizeUsername(usernameInput.value) === previousTarget)) {
       usernameInput.value = snapshot.targetUsername;
     }
 
     metrics.likes = snapshot.totalLikes || 0;
+    metrics.viewers = snapshot.viewerCount ?? null;
+    metrics.chats = 0;
+    metrics.gifts = 0;
     if (snapshot.likesLabel) {
       metricLikesLabel.textContent = snapshot.likesLabel;
     }
-    if (typeof snapshot.viewerCount === 'number') {
-      metrics.viewers = snapshot.viewerCount;
-    }
-
-    if (Array.isArray(snapshot.recentChat)) {
-      metrics.chats = snapshot.recentChat.length;
-    }
-    if (Array.isArray(snapshot.recentGifts)) {
-      metrics.gifts = snapshot.recentGifts.reduce((acc, g) => acc + (g.data?.count || 1), 0);
-    }
-
-    updateMetricsUI();
+    clearFeed();
 
     // Render recent chats from snapshot
     if (Array.isArray(snapshot.recentChat) && snapshot.recentChat.length > 0) {
@@ -826,6 +956,7 @@
     if (Array.isArray(snapshot.recentGifts) && snapshot.recentGifts.length > 0) {
       snapshot.recentGifts.forEach(giftEvent => handleEvent(giftEvent));
     }
+    updateMetricsUI();
 
     // Set status badge
     updateStatusBadge(snapshot.status || 'idle', snapshot.errorMessage);
@@ -870,7 +1001,7 @@
     };
 
     // Specific event listeners if server uses custom event names
-    const eventNames = ['snapshot', 'chat.message', 'engagement.like', 'gift.update', 'gift.completed', 'live.status', 'viewer.count', 'engagement.follow', 'engagement.share'];
+    const eventNames = ['snapshot', 'chat.message', 'engagement.like', 'engagement.like-total', 'gift.update', 'gift.completed', 'live.status', 'viewer.count', 'engagement.follow', 'engagement.share'];
     eventNames.forEach(name => {
       eventSource.addEventListener(name, function (event) {
         try {
@@ -893,16 +1024,19 @@
 
   // Action: Connect to Live
   async function connectLive() {
+    if (btnConnect.disabled) return;
     const rawInput = usernameInput.value;
     const validation = validateUsername(rawInput);
 
     if (!validation.valid) {
-      updateStatusBadge('invalid input', validation.message);
+      inputFeedback.textContent = validation.message;
+      usernameInput.classList.add('input-error');
       return;
     }
 
     const username = validation.normalized;
-    updateStatusBadge('connecting');
+    connectionRequestPending = true;
+    updateConnectAction();
 
     try {
       const response = await fetch('/api/live/connect', {
@@ -915,27 +1049,16 @@
 
       if (!response.ok) {
         const errMsg = result.error || result.message || 'Falha ao conectar à live.';
-        if (response.status === 400) {
-          updateStatusBadge('invalid input', errMsg);
-        } else if (response.status === 404 || errMsg.toLowerCase().includes('offline')) {
-          updateStatusBadge('offline', errMsg);
-        } else {
-          updateStatusBadge('error', errMsg);
-        }
+        inputFeedback.textContent = errMsg;
         showToast(errMsg, 'error');
-      } else {
-        showToast(`Conectando à live de @${username}...`);
-        if (result.status) {
-          updateStatusBadge(result.status, result.message);
-        }
-        if (result.overlayToken) {
-          overlayToken = result.overlayToken;
-          updateObsUrlDisplay();
-        }
+      } else if (result.snapshot && eventSource?.readyState !== EventSource.OPEN) {
+        applySnapshot(result.snapshot);
       }
     } catch (err) {
-      updateStatusBadge('error', 'Erro ao enviar comando de conexão.');
       showToast('Erro ao comunicar com o servidor.', 'error');
+    } finally {
+      connectionRequestPending = false;
+      updateConnectAction();
     }
   }
 
@@ -982,6 +1105,7 @@
   btnClearFeed.addEventListener('click', clearFeed);
 
   // Input Enter key
+  usernameInput.addEventListener('input', updateConnectAction);
   usernameInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();

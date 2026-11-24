@@ -50,10 +50,10 @@ export function validateAdminRequest(req: Request): Response | null {
   return null;
 }
 
-const engagementWidgets = ['followers-goal', 'gifts-goal', 'top-liker', 'top-gifters'];
-const engagementEvents = new Set(['engagement.like', 'engagement.follow', 'gift.completed', 'live.status']);
+const engagementWidgets = ['followers-goal', 'gifts-goal', 'top-liker', 'top-gifters', 'gift-jar'];
+const engagementEvents = new Set(['engagement.like', 'engagement.follow', 'gift.completed', 'live.status', 'engagement.reset']);
 
-export function createSSEStream(sessionManager: SessionManager, signal: AbortSignal, engagementOnly = false): Response {
+export function createSSEStream(sessionManager: SessionManager, signal: AbortSignal, engagementOnly = false, jarFilters?: URLSearchParams): Response {
   let isClosed = false;
   let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   let unsubscribe: (() => void) | null = null;
@@ -93,7 +93,13 @@ export function createSSEStream(sessionManager: SessionManager, signal: AbortSig
         send(`event: engagement\ndata: ${JSON.stringify(sessionManager.getEngagementWidgets())}\n\n`);
       };
 
-      if (engagementOnly) {
+      const sendJar = () => {
+        if (jarFilters) send(`event: gift-jar\ndata: ${JSON.stringify(sessionManager.getGiftJar(jarFilters))}\n\n`);
+      };
+
+      if (jarFilters) {
+        sendJar();
+      } else if (engagementOnly) {
         sendEngagement();
       } else {
         send(`event: snapshot\ndata: ${JSON.stringify(sessionManager.getSnapshot())}\n\n`);
@@ -101,6 +107,11 @@ export function createSSEStream(sessionManager: SessionManager, signal: AbortSig
 
       unsubscribe = sessionManager.addListener((event) => {
         if (isClosed) return;
+        if (jarFilters) {
+          if (event.type === 'gift.completed' || event.type === 'live.status' ||
+              (event.type === 'engagement.reset' && event.data.widget === 'gift-jar')) sendJar();
+          return;
+        }
         if (engagementOnly) {
           if (engagementEvents.has(event.type)) sendEngagement();
           return;
@@ -193,6 +204,16 @@ export function createHttpServer(options: HttpServerOptions): Server<any> {
       // GET /api/events -> SSE event stream for dashboard
       if (method === 'GET' && pathname === '/api/events') {
         return createSSEStream(sessionManager, req.signal);
+      }
+
+      if (method === 'POST' && pathname.startsWith('/api/widgets/') && pathname.endsWith('/reset')) {
+        const widget = pathname.split('/')[3];
+        if (widget === 'gift-jar' || widget === 'top-liker' || widget === 'top-gifters') {
+          const adminCheck = validateAdminRequest(req);
+          if (adminCheck) return adminCheck;
+          sessionManager.resetEngagementWidget(widget);
+          return Response.json({ ok: true });
+        }
       }
 
       // POST /api/live/connect -> Connect to streamer
@@ -332,7 +353,9 @@ export function createHttpServer(options: HttpServerOptions): Server<any> {
 
         // GET /overlay/:token/events -> SSE for OBS Overlay
         if (subRoute === 'events' && method === 'GET') {
-          return createSSEStream(sessionManager, req.signal, url.searchParams.get('view') === 'engagement');
+          const view = url.searchParams.get('view');
+          return createSSEStream(sessionManager, req.signal, view === 'engagement',
+            view === 'gift-jar' ? url.searchParams : undefined);
         }
 
         const validWidgets = ['chat', 'likes', 'viewers', 'gift-alerts', 'likes-goal', ...engagementWidgets];

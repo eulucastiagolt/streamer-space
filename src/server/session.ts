@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import type {
   ActiveGiftStreak,
   BaseEvent,
@@ -23,6 +25,7 @@ import type {
 import type { OverlayConfig } from '../types/config.js';
 import { ConfigStore, configStore } from './config-store.js';
 import { SimulatedEventSource } from '../ingestion/simulated-source.js';
+import { addViewerScore, GiftJar, rankViewers, type RankedViewer } from './gift-jar.js';
 
 export function normalizeUsername(input: string): string {
   if (!input || typeof input !== 'string') {
@@ -47,6 +50,7 @@ export interface SessionManagerOptions {
   streakTimeoutMs?: number;
   sourceFactory?: SourceFactory;
   configStore?: ConfigStore;
+  profileFile?: string;
 }
 
 export class SessionManager {
@@ -64,23 +68,32 @@ export class SessionManager {
   private _recentChat: BaseEvent<'chat.message', ChatMessageData>[] = [];
   private readonly followers = new Set<string>();
   private giftTotal = 0;
-  private followerBaseline?: { total: number; observed: number };
-  private readonly likesByUser = new Map<string, number>();
-  private readonly giftsByUser = new Map<string, number>();
+  private profileFollowers?: number;
+  private followerCountPending = false;
+  private readonly likesByUser = new Map<string, RankedViewer>();
+  private readonly giftsByUser = new Map<string, RankedViewer>();
+  private readonly giftJar = new GiftJar();
 
   getEngagementWidgets() {
-    const topFive = (scores: Map<string, number>) => Array.from(scores, ([username, count]) => ({ username, count }))
-      .sort((a, b) => b.count - a.count || a.username.localeCompare(b.username))
-      .slice(0, 5);
-
     return {
       followers: this.followers.size,
-      profileFollowers: this.followerBaseline === undefined ? undefined
-        : this.followerBaseline.total + this.followers.size - this.followerBaseline.observed,
+      profileFollowers: this.profileFollowers,
+      ...(this.followerCountPending ? { followerCountPending: true } : {}),
       gifts: this.giftTotal,
-      topLikers: topFive(this.likesByUser),
-      topGifters: topFive(this.giftsByUser),
+      topLikers: rankViewers(this.likesByUser),
+      topGifters: rankViewers(this.giftsByUser),
     };
+  }
+
+  getGiftJar(filters: URLSearchParams) {
+    return this.giftJar.snapshot(filters);
+  }
+
+  resetEngagementWidget(widget: 'gift-jar' | 'top-liker' | 'top-gifters'): void {
+    if (widget === 'gift-jar') this.giftJar.clear();
+    if (widget === 'top-liker') this.likesByUser.clear();
+    if (widget === 'top-gifters') this.giftsByUser.clear();
+    this.emitEvent(this.createEvent('engagement.reset', { widget }));
   }
 
   private _recentGifts: BaseEvent<'gift.completed', GiftCompletedData>[] = [];
@@ -98,6 +111,7 @@ export class SessionManager {
   private _listeners: Set<(event: StreamerSpaceEvent) => void> = new Set();
   private _sourceFactory?: SourceFactory;
   private _configStore: ConfigStore;
+  private readonly profileFile?: string;
 
   constructor(options?: SessionManagerOptions) {
     this._overlayToken = options?.overlayToken || randomUUID().replace(/-/g, '');
@@ -106,6 +120,36 @@ export class SessionManager {
     }
     this._sourceFactory = options?.sourceFactory;
     this._configStore = options?.configStore || configStore;
+    this.profileFile = options?.profileFile;
+  }
+
+  async restoreProfile(): Promise<void> {
+    if (!this.profileFile) return;
+    let profile;
+    try {
+      profile = JSON.parse(readFileSync(this.profileFile, 'utf8'));
+      this._targetUsername = normalizeUsername(profile?.username);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.warn('Falha ao ler o perfil salvo:', err);
+      }
+      return;
+    }
+    if (profile.reconnect === true) {
+      await this.connect(this._targetUsername, { isSimulated: profile.isSimulated === true, persist: false });
+    }
+  }
+
+  private saveProfile(username: string, isSimulated: boolean, reconnect: boolean): void {
+    if (!this.profileFile) return;
+    mkdirSync(dirname(this.profileFile), { recursive: true });
+    const temporary = `${this.profileFile}.tmp.${randomUUID()}`;
+    try {
+      writeFileSync(temporary, JSON.stringify({ username, isSimulated, reconnect }), 'utf8');
+      renameSync(temporary, this.profileFile);
+    } finally {
+      rmSync(temporary, { force: true });
+    }
   }
 
   get configStore(): ConfigStore {
@@ -170,6 +214,8 @@ export class SessionManager {
       totalLikes: this._totalLikes,
       likesLabel: this._likesLabel,
       viewerCount: this._viewerCount,
+      profileFollowers: this.profileFollowers,
+      followerCountPending: this.followerCountPending,
       recentChat: [...this._recentChat],
       recentGifts: [...this._recentGifts],
       activeGiftStreak: this._activeGiftStreak ? { ...this._activeGiftStreak } : null,
@@ -233,8 +279,10 @@ export class SessionManager {
     return false;
   }
 
-  async connect(rawUsername: string, options?: { isSimulated?: boolean }): Promise<void> {
+  async connect(rawUsername: string, options?: { isSimulated?: boolean; persist?: boolean }): Promise<void> {
     const normalized = normalizeUsername(rawUsername);
+    const isSimulated = options?.isSimulated ?? false;
+    if (options?.persist !== false) this.saveProfile(normalized, isSimulated, true);
 
     // Cancel any previous connection and isolate callbacks
     this._connectionEpoch++;
@@ -245,14 +293,8 @@ export class SessionManager {
       this._streakTimeoutTimer = null;
     }
 
-    if (this._currentSource) {
-      try {
-        await this._currentSource.disconnect();
-      } catch (err) {
-        console.error('Error disconnecting previous source:', err);
-      }
-      this._currentSource = null;
-    }
+    const previousSource = this._currentSource;
+    this._currentSource = null;
 
     // Isolate room state while PRESERVING overlayToken
     this._sessionId = randomUUID();
@@ -269,29 +311,51 @@ export class SessionManager {
     this._recentChat = [];
     this._recentGifts = [];
     this.followers.clear();
-    this.followerBaseline = undefined;
+    this.profileFollowers = undefined;
+    this.followerCountPending = !isSimulated && normalized !== 'demo' && normalized !== 'simulador';
     this.giftTotal = 0;
     this.likesByUser.clear();
     this.giftsByUser.clear();
+    this.giftJar.clear();
     this._activeGiftStreak = null;
     this._activeGiftStreakUnitDiamonds = undefined;
     this._connectedAt = undefined;
-    this._isSimulated = options?.isSimulated ?? false;
+    this._isSimulated = isSimulated;
     this._seenEventIds.clear();
 
-    const statusEvent = this.createEvent('live.status', {
-      status: 'connecting' as ConnectionStatus,
-      targetUsername: normalized,
-      message: 'Conectando à live...',
-      isSimulated: this._isSimulated,
-    });
-    this.emitEvent(statusEvent);
+    this.handleStatusChange('connecting', 'Conectando à live...');
+
+    if (previousSource) {
+      try {
+        await previousSource.disconnect();
+      } catch (err) {
+        console.error('Error disconnecting previous source:', err);
+      }
+    }
+    if (this._connectionEpoch !== currentEpoch) return;
 
     const callbacks: LiveEventSourceCallbacks = {
       onFollowerCount: (count) => {
-        if (this._connectionEpoch !== currentEpoch || !Number.isSafeInteger(count) || count < 0) return;
-        this.followerBaseline = { total: count, observed: this.followers.size };
+        if (this._connectionEpoch !== currentEpoch) return;
+        const wasPending = this.followerCountPending;
+        this.followerCountPending = false;
+        if (count !== undefined && Number.isSafeInteger(count) && count >= 0 && this.profileFollowers !== count) {
+          this.profileFollowers = count;
+        } else if (!wasPending) {
+          return;
+        }
         this.handleStatusChange(this._status, this._errorMessage);
+      },
+      onRoomLikeCount: (count) => {
+        if (this._connectionEpoch !== currentEpoch || !Number.isSafeInteger(count) || count < 0) return;
+        const previous = this._totalLikes;
+        const hadRoomTotal = this._hasRoomTotalLikes;
+        this.applyRoomLikeTotal(count);
+        if (hadRoomTotal && previous === this._totalLikes) return;
+        this.emitEvent(this.createEvent('engagement.like-total', {
+          totalLikes: this._totalLikes,
+          label: this._likesLabel,
+        }));
       },
       onStatusChange: (status, message, details) => {
         if (this._connectionEpoch !== currentEpoch) return;
@@ -343,6 +407,7 @@ export class SessionManager {
       }
     }
 
+    if (this._connectionEpoch !== currentEpoch) return;
     this._currentSource = source;
     try {
       await source.connect(normalized, callbacks);
@@ -353,29 +418,24 @@ export class SessionManager {
   }
 
   async disconnect(): Promise<void> {
-    this._connectionEpoch++;
+    if (this._targetUsername) this.saveProfile(this._targetUsername, this._isSimulated, false);
+    const currentEpoch = ++this._connectionEpoch;
     if (this._streakTimeoutTimer) {
       clearTimeout(this._streakTimeoutTimer);
       this._streakTimeoutTimer = null;
     }
-    if (this._currentSource) {
+    const source = this._currentSource;
+    this._currentSource = null;
+    if (source) {
       try {
-        await this._currentSource.disconnect();
+        await source.disconnect();
       } catch (err) {
         console.error('Error disconnecting source:', err);
       }
-      this._currentSource = null;
     }
-    this._status = 'offline';
-    this._errorMessage = undefined;
-
-    const event = this.createEvent('live.status', {
-      status: 'offline' as ConnectionStatus,
-      targetUsername: this._targetUsername,
-      message: 'Desconectado da live',
-      isSimulated: this._isSimulated,
-    });
-    this.emitEvent(event);
+    if (this._connectionEpoch !== currentEpoch) return;
+    this.followerCountPending = false;
+    this.handleStatusChange('offline', 'Desconectado da live');
   }
 
   handleStatusChange(
@@ -398,6 +458,8 @@ export class SessionManager {
       roomId: this._roomId,
       roomTitle: this._roomTitle,
       isSimulated: this._isSimulated,
+      profileFollowers: this.profileFollowers,
+      followerCountPending: this.followerCountPending,
     });
     this.emitEvent(event);
   }
@@ -427,18 +489,21 @@ export class SessionManager {
     this.emitEvent(event);
   }
 
+  private applyRoomLikeTotal(count: number): void {
+    this._totalLikes = Math.max(this._totalLikes, count);
+    this._likesLabel = 'total de curtidas';
+    this._hasRoomTotalLikes = true;
+  }
+
   handleLike(like: RawLikeEvent): void {
     if (this.isDuplicate(like.id)) return;
 
     const delta = like.count !== undefined && like.count > 0 ? like.count : 1;
 
-    const username = like.username?.trim().toLowerCase();
-    if (username) this.likesByUser.set(username, (this.likesByUser.get(username) ?? 0) + delta);
+    addViewerScore(this.likesByUser, like, delta);
 
     if (like.totalLikes !== undefined && like.totalLikes > 0) {
-      this._totalLikes = Math.max(this._totalLikes, like.totalLikes);
-      this._likesLabel = 'total de curtidas';
-      this._hasRoomTotalLikes = true;
+      this.applyRoomLikeTotal(like.totalLikes);
     } else {
       this._totalLikes += delta;
       if (!this._hasRoomTotalLikes) {
@@ -529,13 +594,13 @@ export class SessionManager {
           : rawRepeatCount;
 
       let totalDiamonds: number | undefined = undefined;
-      if (gift.diamondCount !== undefined) {
-        const unit = this._activeGiftStreakUnitDiamonds ?? gift.diamondCount;
-        if (gift.diamondCount > unit) {
-          totalDiamonds = gift.diamondCount;
-        } else {
-          totalDiamonds = unit * finalCount;
-        }
+      const unitDiamonds = this._activeGiftStreak?.streakId === streakId
+        ? this._activeGiftStreakUnitDiamonds ?? gift.diamondCount
+        : gift.diamondCount;
+      if (unitDiamonds !== undefined) {
+        totalDiamonds = gift.diamondCount !== undefined && gift.diamondCount > unitDiamonds
+          ? gift.diamondCount
+          : unitDiamonds * finalCount;
       }
 
       this._activeGiftStreak = null;
@@ -550,6 +615,7 @@ export class SessionManager {
           diamondCount: totalDiamonds,
           username: gift.username,
           displayName: gift.displayName,
+          avatarUrl: gift.avatarUrl,
           giftPictureUrl: gift.giftPictureUrl,
           streakId: gift.groupId,
         },
@@ -557,8 +623,8 @@ export class SessionManager {
       );
 
       this.giftTotal += finalCount;
-      const username = gift.username.trim().toLowerCase();
-      if (username) this.giftsByUser.set(username, (this.giftsByUser.get(username) ?? 0) + finalCount);
+      addViewerScore(this.giftsByUser, gift, totalDiamonds ?? 0);
+      this.giftJar.add(completedEvent, unitDiamonds);
 
       this._recentGifts.push(completedEvent);
       if (this._recentGifts.length > 50) {
@@ -608,7 +674,7 @@ export class SessionManager {
   }): Promise<void> {
     // If not connected or idle, auto-connect to simulated session
     if (this._status === 'idle' || this._status === 'offline') {
-      await this.connect(this._targetUsername || 'simulador', { isSimulated: true });
+      await this.connect(this._targetUsername || 'simulador', { isSimulated: true, persist: false });
     }
 
     const type = params.type;

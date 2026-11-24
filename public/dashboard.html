@@ -72,7 +72,7 @@
               <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
-              Conectar
+              <span id="connect-label">Conectar</span>
             </button>
             <button id="btn-disconnect" class="btn btn-danger" disabled>
               <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
@@ -558,7 +558,7 @@
             <div class="widget-item-main">
               <div class="widget-item-meta">
                 <h3>Top Liker</h3>
-                <p class="widget-item-desc">Até cinco usuários, ordenados pelas curtidas observadas na sessão.</p>
+                <p class="widget-item-desc">Ranking das curtidas enviadas pelos espectadores durante a sessão.</p>
               </div>
 
               <div class="widget-item-url-box">
@@ -575,7 +575,7 @@
             <div class="widget-item-main">
               <div class="widget-item-meta">
                 <h3>Top Gifters</h3>
-                <p class="widget-item-desc">Até cinco usuários, ordenados pela quantidade de presentes confirmados.</p>
+                <p class="widget-item-desc">Ranking dos espectadores pelo valor dos presentes confirmados em Coins.</p>
               </div>
 
               <div class="widget-item-url-box">
@@ -585,6 +585,21 @@
                 <button class="btn btn-secondary btn-sm btn-copy-widget" data-widget="top-gifters">Copiar URL</button>
                 <button class="btn btn-secondary btn-sm btn-preview-widget" data-widget="top-gifters">Abrir prévia</button>
                 </div>
+            </div>
+          </div>
+          <div class="widget-item-card" id="widget-card-gift-jar">
+            <div class="widget-item-main">
+              <div class="widget-item-meta">
+                <h3>Jarra de Presentes</h3>
+                <p class="widget-item-desc">A jarra enche com os presentes confirmados na live.</p>
+              </div>
+              <div class="widget-item-url-box">
+                <code class="widget-url-text" id="url-widget-gift-jar"></code>
+              </div>
+              <div class="widget-item-actions">
+                <button class="btn btn-secondary btn-sm btn-copy-widget" data-widget="gift-jar">Copiar URL</button>
+                <button class="btn btn-secondary btn-sm btn-preview-widget" data-widget="gift-jar">Abrir prévia</button>
+              </div>
             </div>
           </div>
             </div>
@@ -626,6 +641,20 @@
           <div class="metric-content">
             <span class="metric-title" id="metric-likes-label">Total de Curtidas</span>
             <span id="metric-likes" class="metric-value">0</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon metric-icon-followers" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2M20 8v6m-3-3h6"></path>
+            </svg>
+          </div>
+          <div class="metric-content">
+            <span class="metric-title">Seguidores do perfil</span>
+            <span id="metric-followers" class="metric-value" aria-live="polite">—</span>
+            <span id="metric-followers-status" class="metric-title">Indisponível</span>
           </div>
         </div>
 
@@ -748,6 +777,7 @@
     <div id="toast-container" class="toast-container"></div>
   </div>
 
+  <script src="/engagement-settings.js"></script>
   <script src="/dashboard.js"></script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises';
 import {
   TikTokLiveConnection,
   WebcastEvent,
@@ -16,6 +17,20 @@ import type {
   RawLikeEvent,
 } from '../types/events.js';
 
+interface RoomInfo {
+  like_count?: unknown;
+  likeCount?: unknown;
+  stats?: { like_count?: unknown; likeCount?: unknown };
+  owner?: {
+    display_id?: unknown;
+    displayId?: unknown;
+    unique_id?: unknown;
+    uniqueId?: unknown;
+    follow_info?: { follower_count?: unknown };
+    followInfo?: { followerCount?: unknown };
+  };
+}
+
 export interface TikTokLiveAdapterOptions {
   processInitialData?: boolean;
   requestTimeoutMs?: number;
@@ -33,6 +48,7 @@ export class TikTokLiveAdapter implements LiveEventSource {
   private _connection: TikTokLiveConnection | null = null;
   private _callbacks: LiveEventSourceCallbacks | null = null;
   private _options: TikTokLiveAdapterOptions;
+  private followerLookup?: AbortController;
 
   constructor(options?: TikTokLiveAdapterOptions) {
     this._options = {
@@ -58,7 +74,7 @@ export class TikTokLiveAdapter implements LiveEventSource {
 
   async connect(rawUsername: string, callbacks: LiveEventSourceCallbacks): Promise<void> {
     // Disconnect any existing connection first
-    await this.disconnect();
+    if (this._connection) await this.disconnect();
 
     let normalized: string;
     try {
@@ -89,7 +105,27 @@ export class TikTokLiveAdapter implements LiveEventSource {
     });
     this._connection = connection;
 
-    let followerRoom: string | undefined;
+    const lookup = new AbortController();
+    this.followerLookup = lookup;
+    let initialRoom: { id: string; requestedAt: number; result: ReturnType<typeof fetchRoomInfo> } | undefined;
+    const refreshFollowers = async (initialConnection: Promise<void>) => {
+      while (!lookup.signal.aborted) {
+        let total = await fetchProfileFollowerCount(normalized, lookup.signal);
+        if (total === undefined) {
+          await initialConnection;
+          const roomId = initialRoom?.id ?? connection.roomId;
+          if (roomId && !lookup.signal.aborted) {
+            const room = initialRoom?.id === roomId && Date.now() - initialRoom.requestedAt < 5000
+              ? await initialRoom.result
+              : await fetchRoomInfo(roomId, lookup.signal);
+            total = readRoomFollowerCount(room, normalized);
+          }
+        }
+        if (lookup.signal.aborted) return;
+        callbacks.onFollowerCount?.(total);
+        await delay(45_000, undefined, { signal: lookup.signal, ref: false });
+      }
+    };
     // Attach lifecycle and event listeners
     connection.on(WebcastEvent.CONNECTED, (e) => {
       this._isConnected = true;
@@ -97,14 +133,13 @@ export class TikTokLiveAdapter implements LiveEventSource {
         callbacks.onStatusChange('connected', `Conectado à live de @${normalized}`, {
           roomId: e.roomId,
         });
-        if (followerRoom !== e.roomId) {
-          followerRoom = e.roomId;
-          void fetchFollowerCount(e.roomId, normalized).then(count => {
-            if (count !== undefined && this._connection === connection && followerRoom === e.roomId) {
-              callbacks.onFollowerCount?.(count);
-            }
-          });
-        }
+        const result = fetchRoomInfo(e.roomId, lookup.signal);
+        initialRoom = { id: e.roomId, requestedAt: Date.now(), result };
+        void result.then(room => {
+          if (lookup.signal.aborted || initialRoom?.result !== result) return;
+          const likes = readRoomLikeCount(room);
+          if (likes !== undefined) callbacks.onRoomLikeCount?.(likes);
+        });
       }
     });
 
@@ -157,6 +192,8 @@ export class TikTokLiveAdapter implements LiveEventSource {
       const rawLike: RawLikeEvent = {
         id: e.common?.msgId,
         username: user?.displayId || user?.uniqueId || user?.nickname,
+        displayName: user?.nickname,
+        avatarUrl: user?.avatarThumb?.urlList?.[0],
         count: e.count || 1,
         totalLikes: typeof e.total === 'number' && e.total > 0 ? e.total : undefined,
       };
@@ -172,9 +209,10 @@ export class TikTokLiveAdapter implements LiveEventSource {
         giftId: e.giftId,
         giftName: e.gift?.name || 'Presente',
         count: 1,
-        diamondCount: e.gift?.diamondCount !== undefined ? e.gift.diamondCount : 1,
+        diamondCount: e.gift?.diamondCount,
         username: user?.displayId || user?.uniqueId || user?.nickname || 'anônimo',
         displayName: user?.nickname || user?.displayId || user?.uniqueId,
+        avatarUrl: user?.avatarThumb?.urlList?.[0],
         giftPictureUrl: e.gift?.image?.urlList?.[0],
         repeatEnd: isFinished,
         repeatCount: e.repeatCount || 1,
@@ -247,7 +285,11 @@ export class TikTokLiveAdapter implements LiveEventSource {
     });
 
     try {
-      await connection.connect();
+      const connecting = connection.connect();
+      void refreshFollowers(connecting.then(() => {}, () => {})).catch(err => {
+        if (!lookup.signal.aborted) console.warn('Falha ao atualizar seguidores:', err);
+      });
+      await connecting;
     } catch (err: any) {
       this._isConnected = false;
       if (this._callbacks === callbacks) {
@@ -286,6 +328,8 @@ export class TikTokLiveAdapter implements LiveEventSource {
   }
 
   async disconnect(): Promise<void> {
+    this.followerLookup?.abort();
+    this.followerLookup = undefined;
     this._isConnected = false;
     const conn = this._connection;
     this._connection = null;
@@ -313,52 +357,79 @@ export function parseFollowerCount(raw: unknown): number | undefined {
   if (typeof raw !== 'string') return;
 
   const value = raw.trim();
-  const abbreviated = /^(\d+(?:[.,]\d+)?)\s*(k|mil|m|mi|b|bi)$/i.exec(value);
-  if (abbreviated) {
-    const suffix = abbreviated[2].toLowerCase();
-    const multiplier = /^(k|mil)$/.test(suffix) ? 1e3 : /^(m|mi)$/.test(suffix) ? 1e6 : 1e9;
-    const count = Math.round(Number(abbreviated[1].replace(',', '.')) * multiplier);
-    return Number.isSafeInteger(count) ? count : undefined;
-  }
-
   if (/^\d+$/.test(value)) return parseFollowerCount(Number(value));
   if (/^\d{1,3}([., \u00a0\u202f])\d{3}(?:\1\d{3})*$/.test(value)) {
     return parseFollowerCount(Number(value.replace(/\D/g, '')));
   }
 }
 
-async function fetchFollowerCount(roomId: string, username: string): Promise<number | undefined> {
-  // Prefer the profile's own stats. Room metadata can be missing or stale.
-  try {
-    const response = await fetch(`https://www.tiktok.com/@${encodeURIComponent(username)}`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (response.ok) {
-      const script = (await response.text()).match(/<script\b[^>]*\bid="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>(.*?)<\/script>/s);
-      const profile = script && JSON.parse(script[1])?.__DEFAULT_SCOPE__?.['webapp.user-detail']?.userInfo;
-      if (typeof profile?.user?.uniqueId === 'string' &&
-          profile.user.uniqueId.toLowerCase() === username.toLowerCase()) {
+export function readProfileFollowerCount(html: string, username: string): number | undefined {
+  const matchesUsername = (handle: unknown) =>
+    typeof handle === 'string' && handle.toLowerCase() === username.toLowerCase();
+
+  for (const script of html.matchAll(/<script\b[^>]*\sid\s*=\s*["'](__UNIVERSAL_DATA_FOR_REHYDRATION__|SIGI_STATE)["'][^>]*>([\s\S]*?)<\/script\s*>/gi)) {
+    try {
+      const data = JSON.parse(script[2]);
+      const profile = data?.__DEFAULT_SCOPE__?.['webapp.user-detail']?.userInfo;
+      if (matchesUsername(profile?.user?.uniqueId)) {
         const count = parseFollowerCount(profile.statsV2?.followerCount) ??
           parseFollowerCount(profile.stats?.followerCount);
         if (count !== undefined) return count;
       }
+
+      const users = data?.UserModule?.users ?? {};
+      const key = Object.keys(users).find(key => matchesUsername(users[key]?.uniqueId));
+      if (key !== undefined) {
+        const count = parseFollowerCount(data.UserModule.stats?.[key]?.followerCount);
+        if (count !== undefined) return count;
+      }
+    } catch {
+      // A malformed script does not rule out another supported profile payload.
+    }
+  }
+}
+
+async function fetchProfileFollowerCount(username: string, signal: AbortSignal): Promise<number | undefined> {
+  // Prefer the profile's own stats. Room metadata can be missing or stale.
+  try {
+    const response = await fetch(`https://www.tiktok.com/@${encodeURIComponent(username)}`, {
+      signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]),
+    });
+    if (response.ok) {
+      return readProfileFollowerCount(await response.text(), username);
     }
   } catch {
     // LIVE room metadata is the fallback when the public profile is unavailable.
   }
+}
 
+async function fetchRoomInfo(roomId: string, signal: AbortSignal): Promise<RoomInfo | undefined> {
+  if (signal.aborted) return;
   try {
     const url = new URL('https://webcast.tiktok.com/webcast/room/info/');
+    url.searchParams.set('aid', '1988');
     url.searchParams.set('room_id', roomId);
-    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const response = await fetch(url, { signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]) });
     if (!response.ok) return;
     const info = await response.json();
-    const owner = info?.data?.owner;
-    const handle = owner?.display_id ?? owner?.displayId ?? owner?.unique_id ?? owner?.uniqueId;
-    if (typeof handle === 'string' && handle.toLowerCase() !== username.toLowerCase()) return;
-    return parseFollowerCount(owner?.follow_info?.follower_count) ??
-      parseFollowerCount(owner?.followInfo?.followerCount);
+    if (info?.status_code !== undefined && info.status_code !== 0) return;
+    return info?.data;
   } catch {
     // The overlay reports unavailable data or uses the configured manual base.
   }
+}
+
+function readRoomLikeCount(room: RoomInfo | undefined): number | undefined {
+  const totals = [room?.like_count, room?.likeCount, room?.stats?.like_count, room?.stats?.likeCount]
+    .map(parseFollowerCount)
+    .filter((count): count is number => count !== undefined);
+  return totals.length ? Math.max(...totals) : undefined;
+}
+
+function readRoomFollowerCount(room: RoomInfo | undefined, username: string): number | undefined {
+  const owner = room?.owner;
+  const handle = owner?.display_id ?? owner?.displayId ?? owner?.unique_id ?? owner?.uniqueId;
+  if (typeof handle === 'string' && handle.toLowerCase() !== username.toLowerCase()) return;
+  return parseFollowerCount(owner?.follow_info?.follower_count) ??
+    parseFollowerCount(owner?.followInfo?.followerCount);
 }

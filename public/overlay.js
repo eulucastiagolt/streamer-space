@@ -496,7 +496,7 @@
     updateLikesGoal(totalLikes);
 
     // Heartbeat pulse animation
-    if (heartIcon) {
+    if (count > 0 && heartIcon) {
       heartIcon.classList.remove('heart-pulsing');
       void heartIcon.offsetWidth; // Trigger reflow
       heartIcon.classList.add('heart-pulsing');
@@ -979,6 +979,9 @@
       case 'engagement.like':
         updateLikes(data.count, data.label, data.totalLikes);
         break;
+      case 'engagement.like-total':
+        updateLikes(0, data.label, data.totalLikes);
+        break;
 
       case 'gift.completed':
         // ONLY trigger gift alerts for NEW live events after snapshot is processed!
@@ -1105,6 +1108,7 @@
       'snapshot',
       'chat.message',
       'engagement.like',
+      'engagement.like-total',
       'gift.completed',
       'viewer.count',
       'live.status',

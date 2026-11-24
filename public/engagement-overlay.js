@@ -5,7 +5,7 @@ const widgets = {
   'followers-goal': { title: 'Meta de seguidores', key: 'followers', target: 10, unit: 'novos seguidores' },
   'gifts-goal': { title: 'Meta de presentes', key: 'gifts', target: 25, unit: 'presentes' },
   'top-liker': { title: 'Top Liker', key: 'topLikers', unit: 'curtidas' },
-  'top-gifters': { title: 'Top Gifters', key: 'topGifters', unit: 'presentes' },
+  'top-gifters': { title: 'Top Gifters', key: 'topGifters', unit: 'Coins' },
 };
 const config = widgets[widget];
 if (config) {
@@ -15,7 +15,7 @@ if (config) {
   const renderGoal = createGoalWidget(params);
   const empty = document.getElementById('engagement-empty');
   const ranking = document.getElementById('engagement-ranking');
-  const number = new Intl.NumberFormat('pt-BR');
+  const options = config.target ? undefined : readEngagementSettings(widget, params);
   const requestedTarget = Number(params.get('target'));
   const target = Number.isSafeInteger(requestedTarget) && requestedTarget > 0
     ? requestedTarget
@@ -24,6 +24,17 @@ if (config) {
   title.textContent = config.title;
   card.hidden = Boolean(config.target);
   if (config.target) document.getElementById('likes-goal-widget').hidden = false;
+  if (options) {
+    card.classList.add('viewer-ranking');
+    applyEngagementTypography(card, options);
+    card.dir = options.rtl ? 'rtl' : 'ltr';
+    card.dataset.nameEffect = options.nameEffect;
+    card.style.setProperty('--viewer-name', options.nameColor);
+    card.style.setProperty('--viewer-score', options.scoreColor);
+    card.style.setProperty('--viewer-position', options.rankColor);
+    if (options.shadow) card.style.setProperty('--viewer-shadow', options.shadowColor);
+    if (options.outline) card.style.setProperty('--viewer-outline', options.outlineColor);
+  }
 
   const automatic = widget === 'followers-goal' && !['session', 'manual'].includes(params.get('followers'));
   const baselineParam = params.get('initial');
@@ -33,14 +44,16 @@ if (config) {
   function render(stats, sample = false) {
     const value = stats[config.key];
     if (config.target) {
-      const current = automatic && !sample
+      const pending = automatic && !sample && stats.followerCountPending;
+      const current = pending ? 0 : automatic && !sample
         ? stats.profileFollowers ?? (hasInitial ? initial + value : undefined)
         : (hasInitial ? initial : 0) + value;
       renderGoal({
         label: config.title,
         current,
         target,
-        note: current === undefined ? 'Total do perfil indisponível' :
+        note: pending ? 'Carregando seguidores…' :
+          current === undefined ? 'Total do perfil indisponível' :
           automatic && !sample && stats.profileFollowers === undefined ? 'Base manual' : '',
       });
       return;
@@ -49,27 +62,23 @@ if (config) {
     empty.textContent = `Aguardando ${config.unit}…`;
     empty.hidden = value.length > 0;
     ranking.hidden = value.length === 0;
-    ranking.replaceChildren(...value.map(({ username, count }) => {
-      const row = document.createElement('li');
-      const author = document.createElement('span');
-      const score = document.createElement('strong');
-      author.textContent = `@${username}`;
-      score.textContent = `${number.format(count)} ${config.unit}`;
-      row.append(author, score);
-      return row;
-    }));
+    renderViewerRanking(ranking, value, options, {
+      symbol: widget === 'top-liker' ? '♥' : '🪙',
+      label: config.unit,
+    });
   }
 
   if (params.get('preview') === 'sample') {
     const sample = config.target
       ? Math.ceil(target * 0.6)
-      : [128, 84, 53, 27, 12].map((count, index) => ({
+      : [1280, 840, 530, 270, 120, 91, 72, 56, 34, 10].map((count, index) => ({
           username: `exemplo_${index + 1}`,
+          displayName: ['Ana', 'Rafa', 'Bia', 'Lu', 'Caio', 'Léo', 'Mari', 'Duda', 'Gui', 'Nina'][index],
           count,
         }));
     render({ [config.key]: sample }, true);
   } else {
-    render({ [config.key]: config.target ? 0 : [] });
+    render({ [config.key]: config.target ? 0 : [], followerCountPending: true });
     const events = new EventSource(`/overlay/${encodeURIComponent(token)}/events?view=engagement`);
     events.addEventListener('engagement', event => render(JSON.parse(event.data)));
   }
