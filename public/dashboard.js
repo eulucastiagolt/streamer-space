@@ -147,18 +147,182 @@
     return `${window.location.origin}/overlay/${overlayToken}`;
   }
 
+  function getWidgetUrl(widget) {
+    const url = `${window.location.origin}/overlay/${overlayToken}/${widget}`;
+    const settings = document.querySelector(`[data-goal-settings="${widget}"]`);
+    if (!settings) return url;
+    const params = new URLSearchParams();
+    for (const field of settings.elements) {
+      if (field.name && !field.disabled && field.value && field.validity.valid) params.set(field.name, field.value);
+    }
+    const target = document.querySelector(`[data-widget-target="${widget}"]`);
+    if (target?.validity.valid && Number.isSafeInteger(target.valueAsNumber)) {
+      params.set('target', target.value);
+    }
+    return params.size ? `${url}?${params}` : url;
+  }
+
+  document.querySelectorAll('[data-widget-target]').forEach(input => {
+    input.addEventListener('input', updateObsUrlDisplay);
+  });
+
+  for (const widget of ['likes-goal', 'followers-goal', 'gifts-goal']) {
+    const card = document.getElementById(`widget-card-${widget}`);
+    const settings = document.createElement('form');
+    settings.className = 'goal-settings';
+    settings.dataset.goalSettings = widget;
+    settings.innerHTML = `
+      ${widget === 'likes-goal' ? '' : '<label>Título <input class="config-input" name="title" maxlength="64" placeholder="Título padrão"></label>'}
+      ${widget === 'followers-goal' ? `
+        <label>Contagem de seguidores
+          <select class="config-input" name="followers">
+            <option value="profile">Total do perfil conectado</option>
+            <option value="session">Novos na sessão</option>
+            <option value="manual">Base manual + novos na sessão</option>
+          </select>
+        </label>
+        <label data-manual-baseline hidden>Quantidade inicial ou reserva
+          <input class="config-input" type="number" name="initial" min="0" max="1000000000000" step="1" placeholder="Opcional">
+        </label>` : ''}
+      <label>Quando atingir
+        <select class="config-input" name="whenReached">
+          <option value="">Manter objetivo</option>
+          <option value="increase">Aumentar por uma quantidade fixa</option>
+          <option value="double">Dobrar objetivo</option>
+          <option value="hide">Ocultar overlay</option>
+        </select>
+      </label>
+      <label data-goal-increment hidden>Aumentar em
+        <input class="config-input" type="number" name="increment" min="1" max="1000000000000" step="1" value="100">
+      </label>
+      <label>Ação ao atingir
+        <select class="config-input" name="action">
+          <option value="">Destacar meta atingida</option>
+          <option value="none">Sem destaque</option>
+        </select>
+      </label>
+    `;
+    card.append(settings);
+    const syncFields = () => {
+      settings.querySelector('[data-goal-increment]').hidden = settings.elements.whenReached.value !== 'increase';
+      const baseline = settings.querySelector('[data-manual-baseline]');
+      if (baseline) {
+        baseline.hidden = settings.elements.followers.value === 'session';
+        settings.elements.initial.disabled = baseline.hidden;
+      }
+    };
+    settings.addEventListener('submit', event => event.preventDefault());
+    settings.addEventListener('input', () => {
+      syncFields();
+      updateObsUrlDisplay();
+    });
+    syncFields();
+  }
+
+  const overlaySizes = {
+    chat: [480, 620],
+    likes: [360, 100],
+    viewers: [240, 80],
+    'gift-alerts': [800, 240],
+    'likes-goal': [520, 160],
+    'followers-goal': [440, 160],
+    'gifts-goal': [440, 160],
+    'top-liker': [440, 240],
+    'top-gifters': [440, 240],
+  };
+  const galleryNav = document.getElementById('overlay-gallery-nav');
+  const gallerySearch = document.getElementById('overlay-gallery-search');
+  const galleryFrame = document.getElementById('overlay-gallery-frame');
+  const galleryError = document.getElementById('overlay-gallery-error');
+  const galleryExample = document.getElementById('overlay-gallery-example');
+  const galleryCards = [...document.querySelectorAll('#obs-widgets-section .widget-item-card')];
+  let selectedWidget = 'chat';
+  let showGalleryExample = false;
+  let previewRequest;
+
+  async function updateGalleryPreview() {
+    galleryExample.hidden = !['followers-goal', 'gifts-goal', 'top-liker', 'top-gifters'].includes(selectedWidget);
+    galleryExample.textContent = showGalleryExample ? 'Ver ao vivo' : 'Ver exemplo';
+    if (overlayToken === 'default-token') return;
+    const url = new URL(getWidgetUrl(selectedWidget));
+    if (showGalleryExample) url.searchParams.set('preview', 'sample');
+    if (previewRequest?.url === url.href || galleryFrame.src === url.href) return;
+    previewRequest?.controller.abort();
+    const request = { url: url.href, controller: new AbortController() };
+    previewRequest = request;
+    galleryError.hidden = true;
+    galleryFrame.removeAttribute('src');
+    try {
+      const response = await fetch(url, { signal: request.controller.signal, cache: 'no-store' });
+      if (previewRequest !== request) return;
+      if (!response.ok) {
+        galleryError.textContent = response.status === 404
+          ? 'Este overlay ainda não está disponível no servidor em execução. Reinicie o Streamer Space e recarregue o painel.'
+          : 'Não foi possível abrir o overlay. Recarregue o painel e tente novamente.';
+        galleryError.hidden = false;
+        return;
+      }
+      galleryFrame.src = url.href;
+    } catch {
+      if (previewRequest !== request) return;
+      galleryError.textContent = 'Não foi possível conectar ao servidor. Confira se o Streamer Space está em execução.';
+      galleryError.hidden = false;
+    } finally {
+      if (previewRequest === request) previewRequest = undefined;
+    }
+  }
+
+  function selectGalleryWidget(widget) {
+    if (selectedWidget !== widget) showGalleryExample = false;
+    selectedWidget = widget;
+    galleryCards.forEach(card => { card.hidden = card.id !== `widget-card-${widget}`; });
+    galleryNav.querySelectorAll('button').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.galleryWidget === widget));
+    });
+    updateGalleryPreview();
+  }
+
+  galleryCards.forEach(card => {
+    const widget = card.id.replace('widget-card-', '');
+    const label = card.querySelector('h3');
+    const [width, height] = overlaySizes[widget];
+    const size = document.createElement('p');
+    size.className = 'overlay-gallery-size';
+    size.textContent = `Tamanho sugerido no OBS: ${width} × ${height} px (largura × altura)`;
+    label.closest('.widget-item-meta').append(size);
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.galleryWidget = widget;
+    button.textContent = label.textContent;
+    button.addEventListener('click', () => selectGalleryWidget(widget));
+    galleryNav.append(button);
+  });
+  gallerySearch.addEventListener('input', () => {
+    const normalize = value => value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+    const query = normalize(gallerySearch.value.trim());
+    galleryNav.querySelectorAll('button').forEach(button => {
+      button.hidden = !normalize(button.textContent).includes(query);
+    });
+  });
+  galleryExample.addEventListener('click', () => {
+    showGalleryExample = !showGalleryExample;
+    updateGalleryPreview();
+  });
+  selectGalleryWidget(selectedWidget);
+
   function updateObsUrlDisplay() {
-    const origin = window.location.origin;
     const url = getObsOverlayUrl();
     if (obsUrlDisplay) obsUrlDisplay.textContent = url;
 
-    const widgetIds = ['chat', 'likes', 'viewers', 'gift-alerts', 'likes-goal'];
+    const widgetIds = Object.keys(overlaySizes);
     widgetIds.forEach(id => {
       const el = document.getElementById(`url-widget-${id}`);
       if (el) {
-        el.textContent = `${origin}/overlay/${overlayToken}/${id}`;
+        el.textContent = getWidgetUrl(id);
       }
     });
+    updateGalleryPreview();
   }
 
   // Toast Notification
@@ -854,6 +1018,10 @@
     });
   });
 
+  document.getElementById('btn-sim-follow').addEventListener('click', () => {
+    sendSimulatedEvent({ type: 'follow', username: `seguidor_demo_${crypto.randomUUID().slice(0, 8)}` });
+  });
+
   btnSimLike.addEventListener('click', () => {
     sendSimulatedEvent({
       type: 'like',
@@ -1156,7 +1324,7 @@
   document.querySelectorAll('.btn-copy-widget').forEach(btn => {
     btn.addEventListener('click', () => {
       const widget = btn.dataset.widget;
-      const url = `${window.location.origin}/overlay/${overlayToken}/${widget}`;
+      const url = getWidgetUrl(widget);
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url)
           .then(() => showToast(`URL do widget /${widget} copiada!`))
@@ -1171,7 +1339,7 @@
   document.querySelectorAll('.btn-preview-widget').forEach(btn => {
     btn.addEventListener('click', () => {
       const widget = btn.dataset.widget;
-      const url = `${window.location.origin}/overlay/${overlayToken}/${widget}`;
+      const url = getWidgetUrl(widget);
       const win = window.open(url, '_blank');
       if (!win) {
         showToast('Permita pop-ups para abrir a prévia ou copie a URL.', 'error');

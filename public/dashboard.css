@@ -1183,3 +1183,111 @@ body {
     margin-top: 0.5rem;
   }
 }
+
+.overlay-gallery {
+  display: grid;
+  grid-template-columns: minmax(170px, 225px) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.overlay-gallery-sidebar,
+.overlay-gallery-preview {
+  min-width: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.overlay-gallery-sidebar {
+  padding: 12px;
+}
+
+.overlay-gallery-sidebar label,
+.overlay-gallery-size {
+  color: var(--text-muted);
+  font-size: .8rem;
+}
+
+.overlay-gallery-sidebar nav {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.overlay-gallery-sidebar button {
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-main);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.overlay-gallery-sidebar button:hover,
+.overlay-gallery-sidebar button[aria-pressed="true"] {
+  border-color: #f59e0b70;
+  background: #f59e0b18;
+  color: #fbbf73;
+}
+
+.overlay-gallery-workspace {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.overlay-gallery-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+}
+
+.overlay-gallery-preview iframe {
+  display: block;
+  width: 100%;
+  height: clamp(280px, 48vh, 540px);
+  border: 0;
+  background: repeating-conic-gradient(#17202d 0% 25%, #101722 0% 50%) 0 / 24px 24px;
+}
+
+.overlay-gallery-error {
+  padding: 12px 14px;
+  color: var(--warning);
+}
+
+.overlay-gallery [hidden] {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .overlay-gallery {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .overlay-gallery-sidebar nav {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
+}
+
+.goal-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0 1.25rem 1rem;
+}
+
+.goal-settings label {
+  display: grid;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: .8rem;
+}
+
+.goal-settings label[hidden] {
+  display: none;
+}

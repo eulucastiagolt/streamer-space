@@ -202,6 +202,8 @@ html, body {
 }
 
 .like-stat-pill {
+  position: relative;
+  isolation: isolate;
   border-color: rgba(254, 44, 85, 0.4);
   box-shadow: 0 4px 16px rgba(254, 44, 85, 0.2);
 }
@@ -262,16 +264,16 @@ html, body {
 /* Floating Hearts Spawn Container */
 .floating-hearts-container {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
+  z-index: -1;
   pointer-events: none;
   overflow: visible;
 }
 
 .floating-heart {
   position: absolute;
+  bottom: 0;
+  translate: -50% 0;
   font-size: 20px;
   animation: floatHeartUp 2s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
   pointer-events: none;
@@ -280,7 +282,7 @@ html, body {
 
 @keyframes floatHeartUp {
   0% {
-    opacity: 1;
+    opacity: 0.65;
     transform: translateY(0) scale(0.6) rotate(0deg);
   }
   50% {
@@ -423,7 +425,7 @@ html, body {
 .likes-goal-widget {
   position: absolute;
   z-index: 25;
-  display: flex;
+  display: none;
   flex-direction: column;
   justify-content: center;
   gap: 8px;
@@ -558,113 +560,68 @@ html, body {
 
 /* ==========================================================================
    MODULAR DEDICATED WIDGET MODES (/overlay/:token/:widget)
-   Clean 1:1 scale, top-left positioned with 12px padding
+   Center each standalone widget inside its OBS Browser Source at 1:1 scale
    ========================================================================== */
 
-/* Mode: chat */
+body[data-widget]:not([data-widget="all"]) .overlay-container {
+  display: grid;
+  place-items: center;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  padding: 12px;
+}
+
 body[data-widget="chat"] .stats-widget,
 body[data-widget="chat"] .gift-alerts-container,
-body[data-widget="chat"] .likes-goal-widget {
-  display: none !important;
-}
-
-body[data-widget="chat"] .chat-widget {
-  display: flex !important;
-  position: absolute !important;
-  top: 12px !important;
-  left: 12px !important;
-  width: calc(100% - 24px) !important;
-  height: calc(100% - 24px) !important;
-  max-width: calc(100% - 24px) !important;
-  margin: 0 !important;
-}
-
-/* Mode: likes */
+body[data-widget="chat"] .likes-goal-widget,
 body[data-widget="likes"] .chat-widget,
 body[data-widget="likes"] .gift-alerts-container,
 body[data-widget="likes"] .likes-goal-widget,
-body[data-widget="likes"] .viewer-stat-pill {
-  display: none !important;
-}
-
-body[data-widget="likes"] .stats-widget {
-  display: block !important;
-  position: absolute !important;
-  inset: 0 !important;
-}
-
-body[data-widget="likes"] .like-stat-pill {
-  display: flex !important;
-  position: absolute !important;
-  top: 12px !important;
-  left: 12px !important;
-  width: fit-content !important;
-  max-width: calc(100% - 24px) !important;
-  height: auto !important;
-  margin: 0 !important;
-}
-
-/* Mode: viewers */
+body[data-widget="likes"] .viewer-stat-pill,
 body[data-widget="viewers"] .chat-widget,
 body[data-widget="viewers"] .gift-alerts-container,
 body[data-widget="viewers"] .likes-goal-widget,
-body[data-widget="viewers"] .like-stat-pill {
-  display: none !important;
-}
-
-body[data-widget="viewers"] .stats-widget {
-  display: block !important;
-  position: absolute !important;
-  inset: 0 !important;
-}
-
-body[data-widget="viewers"] .viewer-stat-pill {
-  display: flex !important;
-  position: absolute !important;
-  top: 12px !important;
-  left: 12px !important;
-  width: fit-content !important;
-  max-width: calc(100% - 24px) !important;
-  height: auto !important;
-  margin: 0 !important;
-}
-
-/* Mode: gift-alerts */
+body[data-widget="viewers"] .like-stat-pill,
 body[data-widget="gift-alerts"] .chat-widget,
 body[data-widget="gift-alerts"] .stats-widget,
-body[data-widget="gift-alerts"] .likes-goal-widget {
-  display: none !important;
-}
-
-body[data-widget="gift-alerts"] .gift-alerts-container {
-  display: flex !important;
-  position: absolute !important;
-  top: 12px !important;
-  left: 12px !important;
-  width: calc(100% - 24px) !important;
-  height: calc(100% - 24px) !important;
-  max-width: calc(100% - 24px) !important;
-  justify-content: flex-start !important;
-  align-items: center !important;
-  margin: 0 !important;
-}
-
-/* Mode: likes-goal */
+body[data-widget="gift-alerts"] .likes-goal-widget,
 body[data-widget="likes-goal"] .chat-widget,
 body[data-widget="likes-goal"] .stats-widget,
 body[data-widget="likes-goal"] .gift-alerts-container {
   display: none !important;
 }
 
-body[data-widget="likes-goal"] .likes-goal-widget {
+body[data-widget="likes"] .stats-widget,
+body[data-widget="viewers"] .stats-widget {
+  display: grid;
+  place-items: center;
+}
+
+body[data-widget="viewers"] .viewer-stat-pill {
   display: flex !important;
-  position: absolute !important;
-  top: 12px !important;
-  left: 12px !important;
-  width: calc(100% - 24px) !important;
-  max-width: calc(100% - 24px) !important;
-  height: auto !important;
-  margin: 0 !important;
+}
+
+body[data-widget="chat"] .chat-widget,
+body[data-widget="gift-alerts"] .gift-alerts-container,
+body[data-widget="likes-goal"] .likes-goal-widget {
+  position: relative;
+  max-height: 100%;
+}
+
+body[data-widget="chat"] .chat-widget {
+  width: min(100%, 560px);
+}
+
+body[data-widget="chat"] .chat-messages-list {
+  align-items: center;
+}
+
+body[data-widget="gift-alerts"] .gift-alerts-container {
+  width: min(100%, 680px);
+}
+
+body[data-widget="likes-goal"] .likes-goal-widget {
+  display: flex;
+  width: min(100%, 540px);
 }
 
 /* ==========================================================================
@@ -705,7 +662,7 @@ body[data-widget="likes-goal"] .likes-goal-widget {
     height: 180px;
   }
 
-  body:not([data-widget]) .likes-goal-widget,
+  body.overlay-body:not([data-widget]) .likes-goal-widget,
   body[data-widget="all"] .likes-goal-widget {
     left: 1400px;
     top: 920px;
@@ -748,11 +705,84 @@ body[data-widget="likes-goal"] .likes-goal-widget {
     height: 200px;
   }
 
-  body:not([data-widget]) .likes-goal-widget,
+  body.overlay-body:not([data-widget]) .likes-goal-widget,
   body[data-widget="all"] .likes-goal-widget {
     left: 60px;
     top: 940px;
     width: 640px;
     height: 130px;
   }
+}
+
+.engagement-overlay {
+  display: grid;
+  place-items: center;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.engagement-card {
+  box-sizing: border-box;
+  width: min(100%, 420px);
+  max-height: 100%;
+  overflow: hidden;
+  padding: 14px 18px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 16px;
+  background: rgba(12, 16, 26, .88);
+  color: #fff;
+  text-align: center;
+}
+
+.engagement-card h1 {
+  margin: 0 0 10px;
+  font-size: 20px;
+}
+
+.engagement-card p {
+  margin: 6px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.engagement-card progress {
+  width: 100%;
+  height: 12px;
+  accent-color: var(--tiktok-cyan);
+}
+
+.engagement-card.goal-reached {
+  border-color: #22c55e;
+}
+
+.engagement-card ol {
+  margin: 0;
+  padding-inline-start: 1.5em;
+  text-align: left;
+}
+
+.engagement-card li {
+  padding-block: 4px;
+}
+
+.engagement-card li span {
+  overflow-wrap: anywhere;
+}
+
+.engagement-card li strong {
+  float: right;
+  margin-inline-start: 8px;
+  color: var(--tiktok-cyan);
+}
+
+
+.likes-goal-widget[data-goal-hidden] {
+  display: none !important;
+}
+
+.engagement-overlay > .likes-goal-widget:not([hidden]) {
+  position: relative;
+  display: flex;
+  width: min(100%, 540px);
+  max-height: 100%;
 }

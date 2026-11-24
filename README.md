@@ -114,6 +114,8 @@ bun start
 bun run src/index.ts
 ```
 
+Durante o desenvolvimento, use `bun run dev` para reiniciar o servidor automaticamente quando o código mudar. Se estiver usando `bun start`, reinicie esse processo depois de atualizar as rotas e recarregue o painel.
+
 O terminal exibirá:
 ```
 =========================================
@@ -138,7 +140,15 @@ O painel oferece URLs independentes para cada widget. Isso permite adicionar cad
 | 👁️ **Espectadores** | `http://127.0.0.1:3000/overlay/<token>/viewers` | `240 × 80` | Contador de espectadores ao vivo |
 | 🎁 **Alertas de Presentes** | `http://127.0.0.1:3000/overlay/<token>/gift-alerts` | `800 × 240` | Banners de presentes com multiplicador de combo e regras de cor |
 | 🏆 **Meta de Curtidas** | `http://127.0.0.1:3000/overlay/<token>/likes-goal` | `520 × 160` | Barra de progresso dinâmica com título e badge de meta atingida |
+| **Meta de seguidores** | `/overlay/<token>/followers-goal` | `440 × 160` | Novos seguidores únicos observados na sessão |
+| **Meta de presentes** | `/overlay/<token>/gifts-goal` | `440 × 160` | Quantidade de presentes confirmados |
+| **Top Liker** | `/overlay/<token>/top-liker` | `440 × 240` | Até cinco usuários por curtidas observadas |
+| **Top Gifters** | `/overlay/<token>/top-gifters` | `440 × 240` | Até cinco usuários por unidades de presentes confirmadas |
 | 📱 **Overlay Combinado** | `http://127.0.0.1:3000/overlay/<token>` | `1920 × 1080` ou `1080 × 1920` | Todos os widgets na mesma tela com posicionamento responsivo |
+
+Nas duas novas metas, o valor definido no painel vai na URL. Depois de alterar a meta, copie a URL gerada e atualize a fonte no OBS. Os quatro widgets contam eventos observados pelo aplicativo na sessão atual.
+
+Nas três metas, **Quando atingir** define se o overlay mantém, aumenta por um valor fixo, dobra ou oculta o objetivo. **Ação ao atingir** controla o destaque visual. O painel inclui as opções adicionais no link copiado. Na Meta de Seguidores, selecione **Total do perfil conectado** para usar o total informado pelo TikTok e somar os novos seguidores observados depois da leitura. Informe uma base manual se quiser uma reserva quando o dado do perfil estiver indisponível.
 
 ---
 
@@ -157,6 +167,7 @@ O painel oferece URLs independentes para cada widget. Isso permite adicionar cad
    - **Desativar quando não estiver visível:** Opcional (recomendado).
    - **Atualizar o navegador quando a cena se tornar ativa:** Opcional.
 5. Clique em **OK**. O widget transparente e em escala 1:1 estará ativo na tela!
+6. Cada widget dedicado fica centralizado nos dois eixos da fonte. Use **Transformar** no OBS para mover ou redimensionar a fonte na cena.
 
 ---
 

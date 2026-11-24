@@ -105,7 +105,7 @@
               <line x1="12" y1="16" x2="12" y2="12"></line>
               <line x1="12" y1="8" x2="12.01" y2="8"></line>
             </svg>
-            <span>URL Geral do Overlay Combinado (Todos os widgets na mesma tela)</span>
+            <span>Overlay combinado para OBS · 1920 × 1080 (horizontal) ou 1080 × 1920 (vertical)</span>
           </div>
           <div class="obs-url-field">
             <code id="obs-url-display">Carregando URL do overlay...</code>
@@ -125,13 +125,19 @@
           <div class="card-title-group">
             <div style="display: flex; align-items: center; gap: 0.6rem;">
               <h2>Widgets e URLs para OBS</h2>
-              <span class="widgets-tag">TikFinity Style</span>
             </div>
             <p class="card-desc">Adicione cada elemento individualmente no OBS Studio como uma Fonte de Navegador transparente, ou ajuste sua aparência em tempo real.</p>
           </div>
         </div>
 
-        <div class="widgets-accordion-list">
+        <div class="overlay-gallery">
+          <aside class="overlay-gallery-sidebar" aria-label="Escolher overlay">
+            <label for="overlay-gallery-search">Buscar overlay</label>
+            <input type="search" class="config-input" id="overlay-gallery-search" placeholder="Buscar por nome">
+            <nav id="overlay-gallery-nav" aria-label="Overlays disponíveis"></nav>
+          </aside>
+          <div class="overlay-gallery-workspace">
+            <div class="widgets-accordion-list">
           
           <!-- Widget 1: Chat -->
           <div class="widget-item-card" id="widget-card-chat">
@@ -514,6 +520,83 @@
             </div>
           </div>
 
+          <div class="widget-item-card" id="widget-card-followers-goal">
+            <div class="widget-item-main">
+              <div class="widget-item-meta">
+                <h3>Meta de seguidores</h3>
+                <p class="widget-item-desc">Novos seguidores observados na sessão.</p>
+              </div>
+              <label>Meta <input type="number" class="config-input" data-widget-target="followers-goal" min="1" step="1" value="10"></label>
+              <div class="widget-item-url-box">
+                <code class="widget-url-text" id="url-widget-followers-goal"></code>
+              </div>
+              <div class="widget-item-actions">
+                <button class="btn btn-secondary btn-sm btn-copy-widget" data-widget="followers-goal">Copiar URL</button>
+                <button class="btn btn-secondary btn-sm btn-preview-widget" data-widget="followers-goal">Abrir prévia</button>
+                </div>
+            </div>
+          </div>
+
+          <div class="widget-item-card" id="widget-card-gifts-goal">
+            <div class="widget-item-main">
+              <div class="widget-item-meta">
+                <h3>Meta de presentes</h3>
+                <p class="widget-item-desc">Quantidade de presentes confirmados na sessão.</p>
+              </div>
+              <label>Meta <input type="number" class="config-input" data-widget-target="gifts-goal" min="1" step="1" value="25"></label>
+              <div class="widget-item-url-box">
+                <code class="widget-url-text" id="url-widget-gifts-goal"></code>
+              </div>
+              <div class="widget-item-actions">
+                <button class="btn btn-secondary btn-sm btn-copy-widget" data-widget="gifts-goal">Copiar URL</button>
+                <button class="btn btn-secondary btn-sm btn-preview-widget" data-widget="gifts-goal">Abrir prévia</button>
+                </div>
+            </div>
+          </div>
+
+          <div class="widget-item-card" id="widget-card-top-liker">
+            <div class="widget-item-main">
+              <div class="widget-item-meta">
+                <h3>Top Liker</h3>
+                <p class="widget-item-desc">Até cinco usuários, ordenados pelas curtidas observadas na sessão.</p>
+              </div>
+
+              <div class="widget-item-url-box">
+                <code class="widget-url-text" id="url-widget-top-liker"></code>
+              </div>
+              <div class="widget-item-actions">
+                <button class="btn btn-secondary btn-sm btn-copy-widget" data-widget="top-liker">Copiar URL</button>
+                <button class="btn btn-secondary btn-sm btn-preview-widget" data-widget="top-liker">Abrir prévia</button>
+                </div>
+            </div>
+          </div>
+
+          <div class="widget-item-card" id="widget-card-top-gifters">
+            <div class="widget-item-main">
+              <div class="widget-item-meta">
+                <h3>Top Gifters</h3>
+                <p class="widget-item-desc">Até cinco usuários, ordenados pela quantidade de presentes confirmados.</p>
+              </div>
+
+              <div class="widget-item-url-box">
+                <code class="widget-url-text" id="url-widget-top-gifters"></code>
+              </div>
+              <div class="widget-item-actions">
+                <button class="btn btn-secondary btn-sm btn-copy-widget" data-widget="top-gifters">Copiar URL</button>
+                <button class="btn btn-secondary btn-sm btn-preview-widget" data-widget="top-gifters">Abrir prévia</button>
+                </div>
+            </div>
+          </div>
+            </div>
+            <div class="overlay-gallery-preview">
+              <div class="overlay-gallery-preview-header">
+                <strong>Prévia do overlay</strong>
+                <button type="button" class="btn btn-ghost btn-sm" id="overlay-gallery-example" hidden>Ver exemplo</button>
+              </div>
+              <p id="overlay-gallery-error" class="overlay-gallery-error" role="status" hidden></p>
+              <iframe id="overlay-gallery-frame" title="Prévia do overlay selecionado"></iframe>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -596,6 +679,7 @@
             </div>
           </button>
 
+          <button id="btn-sim-follow" class="btn btn-sim">Simular seguidor</button>
           <button id="btn-sim-like" class="btn btn-sim">
             <div class="btn-sim-icon">❤️</div>
             <div class="btn-sim-text">

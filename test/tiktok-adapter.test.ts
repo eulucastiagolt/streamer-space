@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { TikTokLiveAdapter } from '../src/ingestion/tiktok-adapter.js';
+import { parseFollowerCount, TikTokLiveAdapter } from '../src/ingestion/tiktok-adapter.js';
 import type {
   ConnectionStatus,
   LiveEventSourceCallbacks,
@@ -70,4 +70,15 @@ describe('TikTokLiveAdapter', () => {
     expect(typeof adapter.connect).toBe('function');
     expect(typeof adapter.disconnect).toBe('function');
   });
+});
+
+it('reads full and abbreviated TikTok follower counts without dropping their scale', () => {
+  for (const [input, expected] of [
+    ['525K', 525000], ['500k', 500000], ['525,4 K', 525400],
+    ['1.2M', 1200000], ['525 mil', 525000], ['525.123', 525123],
+    ['525,123', 525123], [525123, 525123], [500, 500], ['0', 0],
+    ['525K inválido', undefined], ['-525K', undefined], ['1.23', undefined],
+  ] as const) {
+    expect(parseFollowerCount(input)).toBe(expected);
+  }
 });

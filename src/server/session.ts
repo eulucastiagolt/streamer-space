@@ -62,6 +62,27 @@ export class SessionManager {
   private _hasRoomTotalLikes: boolean = false;
   private _viewerCount?: number;
   private _recentChat: BaseEvent<'chat.message', ChatMessageData>[] = [];
+  private readonly followers = new Set<string>();
+  private giftTotal = 0;
+  private followerBaseline?: { total: number; observed: number };
+  private readonly likesByUser = new Map<string, number>();
+  private readonly giftsByUser = new Map<string, number>();
+
+  getEngagementWidgets() {
+    const topFive = (scores: Map<string, number>) => Array.from(scores, ([username, count]) => ({ username, count }))
+      .sort((a, b) => b.count - a.count || a.username.localeCompare(b.username))
+      .slice(0, 5);
+
+    return {
+      followers: this.followers.size,
+      profileFollowers: this.followerBaseline === undefined ? undefined
+        : this.followerBaseline.total + this.followers.size - this.followerBaseline.observed,
+      gifts: this.giftTotal,
+      topLikers: topFive(this.likesByUser),
+      topGifters: topFive(this.giftsByUser),
+    };
+  }
+
   private _recentGifts: BaseEvent<'gift.completed', GiftCompletedData>[] = [];
   private _activeGiftStreak: ActiveGiftStreak | null = null;
   private _activeGiftStreakUnitDiamonds: number | undefined = undefined;
@@ -247,6 +268,11 @@ export class SessionManager {
     this._viewerCount = undefined;
     this._recentChat = [];
     this._recentGifts = [];
+    this.followers.clear();
+    this.followerBaseline = undefined;
+    this.giftTotal = 0;
+    this.likesByUser.clear();
+    this.giftsByUser.clear();
     this._activeGiftStreak = null;
     this._activeGiftStreakUnitDiamonds = undefined;
     this._connectedAt = undefined;
@@ -262,6 +288,11 @@ export class SessionManager {
     this.emitEvent(statusEvent);
 
     const callbacks: LiveEventSourceCallbacks = {
+      onFollowerCount: (count) => {
+        if (this._connectionEpoch !== currentEpoch || !Number.isSafeInteger(count) || count < 0) return;
+        this.followerBaseline = { total: count, observed: this.followers.size };
+        this.handleStatusChange(this._status, this._errorMessage);
+      },
       onStatusChange: (status, message, details) => {
         if (this._connectionEpoch !== currentEpoch) return;
         this.handleStatusChange(status, message, details);
@@ -401,6 +432,9 @@ export class SessionManager {
 
     const delta = like.count !== undefined && like.count > 0 ? like.count : 1;
 
+    const username = like.username?.trim().toLowerCase();
+    if (username) this.likesByUser.set(username, (this.likesByUser.get(username) ?? 0) + delta);
+
     if (like.totalLikes !== undefined && like.totalLikes > 0) {
       this._totalLikes = Math.max(this._totalLikes, like.totalLikes);
       this._likesLabel = 'total de curtidas';
@@ -522,6 +556,10 @@ export class SessionManager {
         gift.id
       );
 
+      this.giftTotal += finalCount;
+      const username = gift.username.trim().toLowerCase();
+      if (username) this.giftsByUser.set(username, (this.giftsByUser.get(username) ?? 0) + finalCount);
+
       this._recentGifts.push(completedEvent);
       if (this._recentGifts.length > 50) {
         this._recentGifts.shift();
@@ -540,6 +578,8 @@ export class SessionManager {
   }
 
   handleFollow(follow: { username: string; displayName?: string }): void {
+    const username = follow.username.trim().toLowerCase();
+    if (username) this.followers.add(username);
     const event = this.createEvent('engagement.follow', {
       username: follow.username,
       displayName: follow.displayName,
@@ -623,6 +663,8 @@ export class SessionManager {
           await new Promise((r) => setTimeout(r, 200));
         }
       }
+    } else if (type === 'follow') {
+      this.handleFollow({ username: params.username || 'seguidor_demo' });
     } else if (type === 'viewers') {
       this.handleViewerCount(params.count || 250);
     }

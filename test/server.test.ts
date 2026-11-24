@@ -165,6 +165,12 @@ describe('HTTP Server and Routes', () => {
       expect(text).toContain('overlay-app');
     }
 
+    for (const widget of ['followers-goal', 'gifts-goal', 'top-liker', 'top-gifters']) {
+      const res = await fetch(`${baseUrl}/overlay/${testOverlayToken}/${widget}`);
+      expect(res.status).toBe(200);
+      expect(await res.text()).toContain('/engagement-overlay.js');
+    }
+
     // Invalid token on widget route
     const badTokenRes = await fetch(`${baseUrl}/overlay/bad-token-xyz/chat`);
     expect(badTokenRes.status).toBe(403);
@@ -298,6 +304,23 @@ describe('SSE Streaming and Overlay Reconnect / Refresh Snapshot', () => {
 
     expect(foundLiveEvent).toBe(true);
     controller.abort();
+  });
+
+  it('streams current engagement and subsequent follows to dedicated widgets', async () => {
+    const response = await fetch(`${baseUrl}/overlay/${overlayToken}/events?view=engagement`);
+    expect(response.status).toBe(200);
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    try {
+      const initial = decoder.decode((await reader.read()).value);
+      expect(initial).toContain('event: engagement');
+      expect(initial).toContain('"followers":0');
+      sessionManager.handleFollow({ username: 'new_fan' });
+      const update = decoder.decode((await reader.read()).value);
+      expect(update).toContain('"followers":1');
+    } finally {
+      await reader.cancel();
+    }
   });
 
   it('rejects SSE connection with invalid overlay token', async () => {

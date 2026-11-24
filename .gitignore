@@ -1,4 +1,23 @@
-node_modules/
-bun.lock
+# Dependências e arquivos gerados
+/node_modules/
+/dist/
+/coverage/
+*.log
+*.tsbuildinfo
+
+# Variáveis de ambiente e credenciais locais
 .env
-data/overlay-token.txt
+.env.*
+!.env.example
+/.aws/
+
+# Configuração e token dos overlays nesta máquina
+/data/overlay-config.json
+/data/overlay-config.json.tmp.*
+/data/overlay-token.txt
+
+# Metadados locais de ferramentas e do sistema
+/.agents/
+/.codex/
+.DS_Store
+Thumbs.db

@@ -364,6 +364,12 @@ describe('SessionManager - Profile Switching & Isolation', () => {
     expect(session.targetUsername).toBe('streamer_alpha');
     expect(session.status).toBe('connected');
 
+    session.handleFollow({ username: 'early_fan' });
+    (source1Callbacks as LiveEventSourceCallbacks | null)?.onFollowerCount?.(200);
+    expect(session.getEngagementWidgets().profileFollowers).toBe(200);
+    session.handleFollow({ username: 'later_fan' });
+    expect(session.getEngagementWidgets().profileFollowers).toBe(201);
+
     // Generate room state for alpha
     session.handleLike({ id: 'alpha-like-1', count: 10 });
     session.handleChat({ id: 'alpha-chat-1', username: 'viewer_a', comment: 'Olá Alpha!' });
@@ -400,6 +406,8 @@ describe('SessionManager - Profile Switching & Isolation', () => {
     expect(betaSnapshot.recentChat.length).toBe(0);
     expect(betaSnapshot.recentGifts.length).toBe(0);
     expect(betaSnapshot.roomId).toBe('room_beta');
+    (source1Callbacks as LiveEventSourceCallbacks | null)?.onFollowerCount?.(999);
+    expect(session.getEngagementWidgets().profileFollowers).toBeUndefined();
 
     // 3. Stale callbacks test: invoke callbacks from old source1
     expect(source1Callbacks).not.toBeNull();
@@ -489,5 +497,31 @@ describe('SessionManager - Reconnect / Refresh Snapshot Delivery', () => {
     if (newEvents[0].type === 'gift.completed') {
       expect(newEvents[0].data.giftName).toBe('Leão');
     }
+  });
+});
+
+describe('Engagement widgets', () => {
+  it('tracks unique follows, likes by user and completed gifts across the session', async () => {
+    const session = new SessionManager({ overlayToken: 'engagement-test' });
+    session.handleFollow({ username: ' Alice ' });
+    session.handleFollow({ username: 'alice' });
+    session.handleLike({ username: 'alice', count: 2, totalLikes: 500 });
+    session.handleLike({ username: 'bob', count: 4, id: 'like-bob' });
+    session.handleLike({ username: 'bob', count: 4, id: 'like-bob' });
+    const gift = { username: 'alice', giftId: 'rose', giftName: 'Rosa', count: 1, groupId: 'combo' };
+    session.handleGift({ ...gift, id: 'gift-1', repeatCount: 1, repeatEnd: false });
+    expect(session.getEngagementWidgets().gifts).toBe(0);
+    session.handleGift({ ...gift, id: 'gift-end', repeatCount: 3, repeatEnd: true });
+    session.handleGift({ ...gift, id: 'gift-end', repeatCount: 3, repeatEnd: true });
+    expect(session.getEngagementWidgets()).toEqual({
+      followers: 1,
+      profileFollowers: undefined,
+      gifts: 3,
+      topLikers: [{ username: 'bob', count: 4 }, { username: 'alice', count: 2 }],
+      topGifters: [{ username: 'alice', count: 3 }],
+    });
+    await session.connect('simulador', { isSimulated: true });
+    expect(session.getEngagementWidgets()).toEqual({ followers: 0, profileFollowers: undefined, gifts: 0, topLikers: [], topGifters: [] });
+    await session.disconnect();
   });
 });

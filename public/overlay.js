@@ -258,12 +258,7 @@
 
   // Likes Goal Elements
   const likesGoalWidget = document.getElementById('likes-goal-widget');
-  const likesGoalTitle = document.getElementById('likes-goal-title');
-  const likesGoalBadge = document.getElementById('likes-goal-badge');
-  const likesGoalProgress = document.getElementById('likes-goal-progress');
-  const likesGoalCurrent = document.getElementById('likes-goal-current');
-  const likesGoalTarget = document.getElementById('likes-goal-target');
-  const likesGoalPercentage = document.getElementById('likes-goal-percentage');
+  const renderLikesGoal = createGoalWidget(new URLSearchParams(window.location.search));
 
   /**
    * Determine orientation: vertical (height > width) or horizontal
@@ -473,40 +468,11 @@
 
     if (!goalConfig || !likesGoalWidget) return;
 
-    // Title
-    if (likesGoalTitle) {
-      likesGoalTitle.textContent = goalConfig.title || 'Meta de Curtidas';
-    }
-
-    const target = Math.max(1, goalConfig.targetLikes || 1000);
-    const current = Math.max(0, totalLikes);
-    const pct = Math.min(100, Math.floor((current / target) * 100));
-
-    if (likesGoalCurrent) {
-      likesGoalCurrent.textContent = current.toLocaleString('pt-BR');
-    }
-    if (likesGoalTarget) {
-      likesGoalTarget.textContent = target.toLocaleString('pt-BR');
-    }
-    if (likesGoalPercentage) {
-      likesGoalPercentage.textContent = `${pct}%`;
-    }
-    if (likesGoalProgress) {
-      likesGoalProgress.style.width = `${pct}%`;
-    }
-
-    // Reached state badge
-    if (likesGoalBadge) {
-      if (current >= target) {
-        likesGoalBadge.style.display = 'inline-flex';
-        likesGoalWidget.classList.add('goal-reached');
-        if (likesGoalProgress) likesGoalProgress.classList.add('progress-reached');
-      } else {
-        likesGoalBadge.style.display = 'none';
-        likesGoalWidget.classList.remove('goal-reached');
-        if (likesGoalProgress) likesGoalProgress.classList.remove('progress-reached');
-      }
-    }
+    renderLikesGoal({
+      label: goalConfig.title || 'Meta de Curtidas',
+      current: Math.max(0, totalLikes),
+      target: Math.max(1, goalConfig.targetLikes || 1000),
+    });
   }
 
   /**
@@ -555,10 +521,8 @@
     const heartSymbols = ['❤️', '💖', '💕', '💓', '💗'];
     heart.textContent = heartSymbols[Math.floor(Math.random() * heartSymbols.length)];
 
-    // Random horizontal position near like pill
-    const randomLeft = 10 + Math.random() * 80;
-    heart.style.left = `${randomLeft}px`;
-    heart.style.bottom = '10px';
+    // Keep the burst near the center of the counter as its width changes.
+    heart.style.left = `${35 + Math.random() * 30}%`;
 
     floatingHeartsContainer.appendChild(heart);
 
@@ -736,7 +700,7 @@
   /**
    * Apply Overlay Layout & Styles Dynamically to widgets
    * Respects dedicated single-widget mode (activeWidget !== 'all') or composite layout
-   * Standard 1:1 scale (no transform: scale), top-left 12px padding for dedicated widgets
+   * Standalone positioning is handled by CSS at 1:1 scale.
    */
   function applyOverlayConfig(config) {
     const validConf = extractConfig(config);
@@ -769,74 +733,9 @@
 
     // Case 1: DEDICATED WIDGET MODE (URL: /overlay/:token/:widget)
     if (activeWidget !== 'all') {
-      document.body.setAttribute('data-widget', activeWidget);
-
-      if (overlayApp) {
-        overlayApp.style.display = 'flex';
-        overlayApp.style.alignItems = 'center';
-        overlayApp.style.justifyContent = 'center';
-        overlayApp.style.padding = '12px';
-        overlayApp.style.boxSizing = 'border-box';
-      }
-
-      // Hide all other widgets
-      for (const [id, el] of Object.entries(widgetElements)) {
-        if (!el) continue;
-        if (id !== activeWidget) {
-          el.style.display = 'none';
-        }
-      }
-
-      // Center stats container wrapper if likes or viewers is active
-      if (statsWidget) {
-        if (activeWidget === 'likes' || activeWidget === 'viewers') {
-          statsWidget.style.display = 'flex';
-          statsWidget.style.alignItems = 'center';
-          statsWidget.style.justifyContent = 'center';
-          statsWidget.style.position = 'relative';
-          statsWidget.style.inset = 'auto';
-          statsWidget.style.width = '100%';
-          statsWidget.style.height = '100%';
-          statsWidget.style.pointerEvents = 'none';
-        } else {
-          statsWidget.style.display = 'none';
-        }
-      }
-
-      // Show and style ONLY the active widget, centered horizontally and vertically
       const activeEl = widgetElements[activeWidget];
       const activeConf = layout.widgets[activeWidget] || {};
       if (activeEl) {
-        activeEl.style.display = 'flex';
-        activeEl.style.position = 'relative';
-        activeEl.style.top = 'auto';
-        activeEl.style.left = 'auto';
-        activeEl.style.right = 'auto';
-        activeEl.style.bottom = 'auto';
-        activeEl.style.margin = '0 auto';
-        activeEl.style.zIndex = '50';
-        activeEl.style.boxSizing = 'border-box';
-
-        if (activeWidget === 'chat') {
-          activeEl.style.width = '100%';
-          activeEl.style.maxWidth = '560px';
-          activeEl.style.height = '100%';
-        } else if (activeWidget === 'gift-alerts') {
-          activeEl.style.width = '100%';
-          activeEl.style.maxWidth = '680px';
-          activeEl.style.height = 'auto';
-          activeEl.style.alignItems = 'center';
-          activeEl.style.justifyContent = 'center';
-        } else if (activeWidget === 'likes-goal') {
-          activeEl.style.width = '100%';
-          activeEl.style.maxWidth = '540px';
-          activeEl.style.height = 'auto';
-        } else {
-          activeEl.style.width = 'fit-content';
-          activeEl.style.maxWidth = '100%';
-          activeEl.style.height = 'auto';
-        }
-
         // Apply styles for active widget
         const st = activeConf.style || {};
         if (typeof st.opacity === 'number') activeEl.style.opacity = `${st.opacity}`;

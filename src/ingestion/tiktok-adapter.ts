@@ -89,6 +89,7 @@ export class TikTokLiveAdapter implements LiveEventSource {
     });
     this._connection = connection;
 
+    let followerRoom: string | undefined;
     // Attach lifecycle and event listeners
     connection.on(WebcastEvent.CONNECTED, (e) => {
       this._isConnected = true;
@@ -96,6 +97,14 @@ export class TikTokLiveAdapter implements LiveEventSource {
         callbacks.onStatusChange('connected', `Conectado à live de @${normalized}`, {
           roomId: e.roomId,
         });
+        if (followerRoom !== e.roomId) {
+          followerRoom = e.roomId;
+          void fetchFollowerCount(e.roomId, normalized).then(count => {
+            if (count !== undefined && this._connection === connection && followerRoom === e.roomId) {
+              callbacks.onFollowerCount?.(count);
+            }
+          });
+        }
       }
     });
 
@@ -294,5 +303,62 @@ export class TikTokLiveAdapter implements LiveEventSource {
     if (cb) {
       cb.onStatusChange('offline', 'Desconectado do streamer');
     }
+  }
+}
+
+export function parseFollowerCount(raw: unknown): number | undefined {
+  if (typeof raw === 'number') {
+    return Number.isSafeInteger(raw) && raw >= 0 ? raw : undefined;
+  }
+  if (typeof raw !== 'string') return;
+
+  const value = raw.trim();
+  const abbreviated = /^(\d+(?:[.,]\d+)?)\s*(k|mil|m|mi|b|bi)$/i.exec(value);
+  if (abbreviated) {
+    const suffix = abbreviated[2].toLowerCase();
+    const multiplier = /^(k|mil)$/.test(suffix) ? 1e3 : /^(m|mi)$/.test(suffix) ? 1e6 : 1e9;
+    const count = Math.round(Number(abbreviated[1].replace(',', '.')) * multiplier);
+    return Number.isSafeInteger(count) ? count : undefined;
+  }
+
+  if (/^\d+$/.test(value)) return parseFollowerCount(Number(value));
+  if (/^\d{1,3}([., \u00a0\u202f])\d{3}(?:\1\d{3})*$/.test(value)) {
+    return parseFollowerCount(Number(value.replace(/\D/g, '')));
+  }
+}
+
+async function fetchFollowerCount(roomId: string, username: string): Promise<number | undefined> {
+  // Prefer the profile's own stats. Room metadata can be missing or stale.
+  try {
+    const response = await fetch(`https://www.tiktok.com/@${encodeURIComponent(username)}`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (response.ok) {
+      const script = (await response.text()).match(/<script\b[^>]*\bid="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>(.*?)<\/script>/s);
+      const profile = script && JSON.parse(script[1])?.__DEFAULT_SCOPE__?.['webapp.user-detail']?.userInfo;
+      if (typeof profile?.user?.uniqueId === 'string' &&
+          profile.user.uniqueId.toLowerCase() === username.toLowerCase()) {
+        const count = parseFollowerCount(profile.statsV2?.followerCount) ??
+          parseFollowerCount(profile.stats?.followerCount);
+        if (count !== undefined) return count;
+      }
+    }
+  } catch {
+    // LIVE room metadata is the fallback when the public profile is unavailable.
+  }
+
+  try {
+    const url = new URL('https://webcast.tiktok.com/webcast/room/info/');
+    url.searchParams.set('room_id', roomId);
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) return;
+    const info = await response.json();
+    const owner = info?.data?.owner;
+    const handle = owner?.display_id ?? owner?.displayId ?? owner?.unique_id ?? owner?.uniqueId;
+    if (typeof handle === 'string' && handle.toLowerCase() !== username.toLowerCase()) return;
+    return parseFollowerCount(owner?.follow_info?.follower_count) ??
+      parseFollowerCount(owner?.followInfo?.followerCount);
+  } catch {
+    // The overlay reports unavailable data or uses the configured manual base.
   }
 }

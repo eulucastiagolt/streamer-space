@@ -179,6 +179,7 @@ export interface RawGiftEvent {
 }
 
 export interface LiveEventSourceCallbacks {
+  onFollowerCount?: (count: number) => void;
   onStatusChange: (status: ConnectionStatus, message?: string, details?: { roomId?: string; roomTitle?: string }) => void;
   onChat: (chat: RawChatMessage) => void;
   onLike: (like: RawLikeEvent) => void;

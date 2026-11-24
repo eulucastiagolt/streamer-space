@@ -50,7 +50,10 @@ export function validateAdminRequest(req: Request): Response | null {
   return null;
 }
 
-export function createSSEStream(sessionManager: SessionManager, signal: AbortSignal): Response {
+const engagementWidgets = ['followers-goal', 'gifts-goal', 'top-liker', 'top-gifters'];
+const engagementEvents = new Set(['engagement.like', 'engagement.follow', 'gift.completed', 'live.status']);
+
+export function createSSEStream(sessionManager: SessionManager, signal: AbortSignal, engagementOnly = false): Response {
   let isClosed = false;
   let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   let unsubscribe: (() => void) | null = null;
@@ -86,13 +89,22 @@ export function createSSEStream(sessionManager: SessionManager, signal: AbortSig
 
       signal.addEventListener('abort', cleanup);
 
-      // Send current snapshot immediately on connect / reconnect
-      const snapshot = sessionManager.getSnapshot();
-      send(`event: snapshot\ndata: ${JSON.stringify(snapshot)}\n\n`);
+      const sendEngagement = () => {
+        send(`event: engagement\ndata: ${JSON.stringify(sessionManager.getEngagementWidgets())}\n\n`);
+      };
 
-      // Stream incremental events
+      if (engagementOnly) {
+        sendEngagement();
+      } else {
+        send(`event: snapshot\ndata: ${JSON.stringify(sessionManager.getSnapshot())}\n\n`);
+      }
+
       unsubscribe = sessionManager.addListener((event) => {
         if (isClosed) return;
+        if (engagementOnly) {
+          if (engagementEvents.has(event.type)) sendEngagement();
+          return;
+        }
         send(`event: ${event.type}\nid: ${event.sequence}\ndata: ${JSON.stringify(event)}\n\n`);
       });
 
@@ -320,14 +332,15 @@ export function createHttpServer(options: HttpServerOptions): Server<any> {
 
         // GET /overlay/:token/events -> SSE for OBS Overlay
         if (subRoute === 'events' && method === 'GET') {
-          return createSSEStream(sessionManager, req.signal);
+          return createSSEStream(sessionManager, req.signal, url.searchParams.get('view') === 'engagement');
         }
 
-        const validWidgets = ['chat', 'likes', 'viewers', 'gift-alerts', 'likes-goal'];
+        const validWidgets = ['chat', 'likes', 'viewers', 'gift-alerts', 'likes-goal', ...engagementWidgets];
 
         // GET /overlay/:token OR GET /overlay/:token/:widget -> Serve overlay HTML
         if ((!subRoute || validWidgets.includes(subRoute)) && method === 'GET') {
-          const file = Bun.file(join(publicDir, 'overlay.html'));
+          const page = engagementWidgets.includes(subRoute) ? 'engagement-overlay.html' : 'overlay.html';
+          const file = Bun.file(join(publicDir, page));
           if (await file.exists()) {
             return new Response(file, {
               headers: {

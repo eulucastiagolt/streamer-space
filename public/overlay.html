@@ -20,10 +20,8 @@
 
     <!-- Stats Widget (Likes & Viewers Counter) -->
     <div id="stats-widget" class="stats-widget">
-      <!-- Floating Hearts Spawn Container -->
-      <div id="floating-hearts-container" class="floating-hearts-container"></div>
-
       <div class="stat-pill like-stat-pill" id="like-stat-box">
+        <div id="floating-hearts-container" class="floating-hearts-container" aria-hidden="true"></div>
         <div class="heart-icon-wrapper" id="heart-icon">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="#fe2c55" stroke="#fe2c55" stroke-width="1.5">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -55,7 +53,7 @@
     </div>
 
     <!-- Meta de Curtidas ('likes-goal') Widget -->
-    <div id="likes-goal-widget" class="likes-goal-widget" style="display: none;">
+    <div id="likes-goal-widget" class="likes-goal-widget">
       <div class="likes-goal-header">
         <div class="likes-goal-title-group">
           <span class="likes-goal-icon">🎯</span>
@@ -78,6 +76,7 @@
 
   </div>
 
+  <script src="/goal-widget.js"></script>
   <script src="/overlay.js"></script>
 </body>
 </html>
