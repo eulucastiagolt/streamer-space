@@ -51,9 +51,9 @@
             'likes': {
               id: 'likes',
               visible: true,
-              position: { x: 1540, y: 30, width: 340, height: 70, zIndex: 30 },
+              position: { x: 1500, y: 30, width: 380, height: 74, zIndex: 30 },
               style: {
-                fontSize: 18,
+                fontSize: 22,
                 textColor: '#ffffff',
                 backgroundColor: 'rgba(12, 16, 26, 0.82)',
                 opacity: 1,
@@ -63,9 +63,9 @@
             'viewers': {
               id: 'viewers',
               visible: true,
-              position: { x: 1680, y: 110, width: 200, height: 50, zIndex: 20 },
+              position: { x: 1700, y: 116, width: 180, height: 56, zIndex: 20 },
               style: {
-                fontSize: 16,
+                fontSize: 20,
                 textColor: '#38bdf8',
                 backgroundColor: 'rgba(12, 16, 26, 0.82)',
                 opacity: 1,
@@ -75,9 +75,9 @@
             'chat': {
               id: 'chat',
               visible: true,
-              position: { x: 40, y: 500, width: 480, height: 540, zIndex: 40 },
+              position: { x: 40, y: 440, width: 540, height: 600, zIndex: 40 },
               style: {
-                fontSize: 15,
+                fontSize: 22,
                 textColor: '#f8fafc',
                 backgroundColor: 'rgba(12, 16, 26, 0.82)',
                 opacity: 1,
@@ -89,9 +89,9 @@
             'likes-goal': {
               id: 'likes-goal',
               visible: false,
-              position: { x: 1400, y: 920, width: 480, height: 120, zIndex: 25 },
+              position: { x: 1380, y: 900, width: 500, height: 140, zIndex: 25 },
               style: {
-                fontSize: 16,
+                fontSize: 20,
                 textColor: '#ffffff',
                 backgroundColor: 'rgba(12, 16, 26, 0.85)',
                 opacity: 1,

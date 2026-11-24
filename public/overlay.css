@@ -243,7 +243,7 @@ html, body {
 }
 
 .counter-number {
-  font-size: 1.15rem;
+  font-size: 1.25em;
   font-weight: 800;
   color: #ffffff;
   font-family: var(--font-combo);
@@ -251,7 +251,7 @@ html, body {
 }
 
 .counter-label {
-  font-size: 0.72rem;
+  font-size: 0.72em;
   font-weight: 600;
   text-transform: uppercase;
   color: #94a3b8;
@@ -334,10 +334,10 @@ html, body {
   background: var(--chat-bubble-bg, rgba(12, 16, 26, 0.82));
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--chat-bubble-radius, 12px);
-  padding: 6px 12px;
+  padding: 0.4em 0.75em;
   backdrop-filter: blur(6px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-  font-size: 0.95em;
+  font-size: 1em;
   line-height: 1.4;
   animation: chatBubbleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   width: fit-content;
@@ -346,11 +346,11 @@ html, body {
 }
 
 .chat-avatar {
-  width: 24px;
-  height: 24px;
+  width: 1.55em;
+  height: 1.55em;
   border-radius: 50%;
   object-fit: cover;
-  margin-right: 6px;
+  margin-right: 0.4em;
   border: 1.5px solid rgba(255, 255, 255, 0.3);
   flex-shrink: 0;
   display: inline-block;
