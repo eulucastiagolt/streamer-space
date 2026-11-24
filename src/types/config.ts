@@ -118,9 +118,9 @@ export function createDefaultOverlayConfig(): OverlayConfig {
           'gift-alerts': {
             id: 'gift-alerts',
             visible: true,
-            position: { x: 480, y: 30, width: 960, height: 180, zIndex: 50 },
+            position: { x: 480, y: 30, width: 960, height: 160, zIndex: 50 },
             style: {
-              fontSize: 22,
+              fontSize: 16,
               textColor: '#ffffff',
               backgroundColor: 'rgba(15, 23, 42, 0.85)',
               opacity: 1,
@@ -150,9 +150,9 @@ export function createDefaultOverlayConfig(): OverlayConfig {
           'likes': {
             id: 'likes',
             visible: true,
-            position: { x: 1500, y: 30, width: 380, height: 74, zIndex: 30 },
+            position: { x: 1580, y: 30, width: 300, height: 56, zIndex: 30 },
             style: {
-              fontSize: 22,
+              fontSize: 16,
               textColor: '#ffffff',
               backgroundColor: 'rgba(12, 16, 26, 0.82)',
               opacity: 1,
@@ -162,9 +162,9 @@ export function createDefaultOverlayConfig(): OverlayConfig {
           'viewers': {
             id: 'viewers',
             visible: true,
-            position: { x: 1700, y: 116, width: 180, height: 56, zIndex: 20 },
+            position: { x: 1740, y: 98, width: 140, height: 44, zIndex: 20 },
             style: {
-              fontSize: 20,
+              fontSize: 15,
               textColor: '#38bdf8',
               backgroundColor: 'rgba(12, 16, 26, 0.82)',
               opacity: 1,
@@ -174,9 +174,9 @@ export function createDefaultOverlayConfig(): OverlayConfig {
           'chat': {
             id: 'chat',
             visible: true,
-            position: { x: 40, y: 440, width: 540, height: 600, zIndex: 40 },
+            position: { x: 40, y: 560, width: 440, height: 480, zIndex: 40 },
             style: {
-              fontSize: 22,
+              fontSize: 15,
               textColor: '#f8fafc',
               backgroundColor: 'rgba(12, 16, 26, 0.82)',
               opacity: 1,
@@ -188,9 +188,9 @@ export function createDefaultOverlayConfig(): OverlayConfig {
           'likes-goal': {
             id: 'likes-goal',
             visible: false,
-            position: { x: 1380, y: 900, width: 500, height: 140, zIndex: 25 },
+            position: { x: 1460, y: 930, width: 420, height: 110, zIndex: 25 },
             style: {
-              fontSize: 20,
+              fontSize: 15,
               textColor: '#ffffff',
               backgroundColor: 'rgba(12, 16, 26, 0.85)',
               opacity: 1,

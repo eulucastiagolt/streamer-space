@@ -50,9 +50,9 @@
             'likes': {
               id: 'likes',
               visible: true,
-              position: { x: 1500, y: 30, width: 380, height: 74, zIndex: 30 },
+              position: { x: 1580, y: 30, width: 300, height: 56, zIndex: 30 },
               style: {
-                fontSize: 22,
+                fontSize: 16,
                 textColor: '#ffffff',
                 backgroundColor: 'rgba(12, 16, 26, 0.82)',
                 opacity: 1,
@@ -62,9 +62,9 @@
             'viewers': {
               id: 'viewers',
               visible: true,
-              position: { x: 1700, y: 116, width: 180, height: 56, zIndex: 20 },
+              position: { x: 1740, y: 98, width: 140, height: 44, zIndex: 20 },
               style: {
-                fontSize: 20,
+                fontSize: 15,
                 textColor: '#38bdf8',
                 backgroundColor: 'rgba(12, 16, 26, 0.82)',
                 opacity: 1,
@@ -74,9 +74,9 @@
             'chat': {
               id: 'chat',
               visible: true,
-              position: { x: 40, y: 440, width: 540, height: 600, zIndex: 40 },
+              position: { x: 40, y: 560, width: 440, height: 480, zIndex: 40 },
               style: {
-                fontSize: 22,
+                fontSize: 15,
                 textColor: '#f8fafc',
                 backgroundColor: 'rgba(12, 16, 26, 0.82)',
                 opacity: 1,
@@ -88,9 +88,9 @@
             'likes-goal': {
               id: 'likes-goal',
               visible: false,
-              position: { x: 1380, y: 900, width: 500, height: 140, zIndex: 25 },
+              position: { x: 1460, y: 930, width: 420, height: 110, zIndex: 25 },
               style: {
-                fontSize: 20,
+                fontSize: 15,
               textColor: '#ffffff',
               backgroundColor: 'rgba(12, 16, 26, 0.85)',
               opacity: 1,
@@ -722,24 +722,15 @@
     const winW = window.innerWidth || canvasW;
     const winH = window.innerHeight || canvasH;
 
-    // Uniformly scale the logical canvas to fit the viewport when previewed in smaller windows
+    // Keep standard 1:1 scale (no shrinking transform on #overlay-app)
     const overlayApp = document.getElementById('overlay-app');
     if (overlayApp) {
-      overlayApp.style.position = 'absolute';
-      overlayApp.style.width = `${canvasW}px`;
-      overlayApp.style.height = `${canvasH}px`;
-      const isExactCanvas = Math.abs(winW - canvasW) < 10 && Math.abs(winH - canvasH) < 10;
-      if (isExactCanvas) {
-        overlayApp.style.transform = 'none';
-        overlayApp.style.left = '0px';
-        overlayApp.style.top = '0px';
-      } else {
-        const scale = Math.min(winW / canvasW, winH / canvasH);
-        overlayApp.style.transformOrigin = 'top left';
-        overlayApp.style.transform = `scale(${scale})`;
-        overlayApp.style.left = `${Math.round((winW - canvasW * scale) / 2)}px`;
-        overlayApp.style.top = `${Math.round((winH - canvasH * scale) / 2)}px`;
-      }
+      overlayApp.style.position = 'relative';
+      overlayApp.style.width = '100%';
+      overlayApp.style.height = '100%';
+      overlayApp.style.transform = 'none';
+      overlayApp.style.left = '0px';
+      overlayApp.style.top = '0px';
     }
 
     // Elements mapping
@@ -750,6 +741,8 @@
       'gift-alerts': giftAlertsContainer,
       'likes-goal': likesGoalWidget,
     };
+
+    const isExactCanvas = Math.abs(winW - canvasW) < 10 && Math.abs(winH - canvasH) < 10;
 
     for (const [id, el] of Object.entries(widgetElements)) {
       if (!el) continue;
@@ -772,7 +765,7 @@
         }
       }
 
-      // 2. Position & Size in logical canvas space (clamped to logical canvas bounds)
+      // 2. Position & Size at standard 1:1 scale (clamped to current viewport)
       const pos = widgetConf.position || {};
       const origW = typeof pos.width === 'number' ? pos.width : 300;
       const origH = typeof pos.height === 'number' ? pos.height : 100;
@@ -780,10 +773,12 @@
       const origY = typeof pos.y === 'number' ? pos.y : 0;
       const zIndex = typeof pos.zIndex === 'number' ? pos.zIndex : 10;
 
-      const clampedW = Math.min(origW, canvasW);
-      const clampedH = Math.min(origH, canvasH);
-      const clampedX = Math.max(0, Math.min(origX, canvasW - clampedW));
-      const clampedY = Math.max(0, Math.min(origY, canvasH - clampedH));
+      const clampedW = Math.min(origW, winW);
+      const clampedH = Math.min(origH, winH);
+      const targetX = isExactCanvas ? origX : Math.round((origX / canvasW) * winW);
+      const targetY = isExactCanvas ? origY : Math.round((origY / canvasH) * winH);
+      const clampedX = Math.max(0, Math.min(targetX, winW - clampedW));
+      const clampedY = Math.max(0, Math.min(targetY, winH - clampedH));
 
       el.style.position = 'absolute';
       el.style.left = `${clampedX}px`;
